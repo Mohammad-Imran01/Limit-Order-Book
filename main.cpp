@@ -6,10 +6,11 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
+#include <memory>
 
 int main() {
-    Book* book = new Book();
-
+    std::shared_ptr<Book> book = std::make_shared<Book>();
+ 
     OrderPipeline orderPipeline(book);
 
     // GenerateOrders generateOrders(book);
@@ -34,6 +35,6 @@ int main() {
 
     std::cout << "Time taken to process orders: " << duration.count() << " milliseconds" << std::endl;
 
-    delete book;
+    std::cout << "\nptr cnt: " << book.use_count() << std::endl;
     return 0;
 }

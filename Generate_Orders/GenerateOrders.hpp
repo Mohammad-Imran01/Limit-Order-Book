@@ -3,12 +3,14 @@
 
 #include <random>
 #include <fstream>
+#include <memory>
 
 class Book;
 
-class GenerateOrders {
+class GenerateOrders
+{
 private:
-    Book* book;
+    std::shared_ptr<Book> book;
     int orderId = 11001;
     std::ofstream file;
 
@@ -29,7 +31,7 @@ private:
     void modifyStopLimit();
 
 public:
-    GenerateOrders(Book* book);
+    GenerateOrders(std::shared_ptr<Book> book);
     void createInitialOrders(int numberOfOrders, int centreOfBook);
     void createOrders(int numberOfOrders);
 };

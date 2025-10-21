@@ -5,12 +5,13 @@
 #include <unordered_map>
 #include <string_view>
 #include <sstream>
+#include <memory>
 
 class Book;
 
 class OrderPipeline {
 private:
-    Book* book;
+    std::shared_ptr<Book> book;
 
     using OrderFunction = void(OrderPipeline::*)(std::istringstream&);
     std::unordered_map<std::string_view, OrderFunction> orderFunctions;
@@ -27,7 +28,7 @@ private:
     void processModifyStopLimitOrder(std::istringstream& iss);
 
 public:
-    OrderPipeline(Book* book);
+    OrderPipeline(std::shared_ptr<Book> book);
     void processOrdersFromFile(const std::string& filename);
 };
 

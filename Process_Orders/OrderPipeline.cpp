@@ -7,7 +7,7 @@
 #include <random>
 #include <chrono>
 
-OrderPipeline::OrderPipeline(Book* book) : book(book) {
+OrderPipeline::OrderPipeline(std::shared_ptr<Book> bookParam) : book(bookParam) {
     orderFunctions = {
         {"Market", &OrderPipeline::processMarketOrder},
         {"AddLimit", &OrderPipeline::processAddLimitOrder},
