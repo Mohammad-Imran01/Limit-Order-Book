@@ -3,151 +3,150 @@
 #include <iostream>
 
 Limit::Limit(int _limitPrice, bool _buyOrSell, int _size, int _totalVolume)
-    : limitPrice(_limitPrice), buyOrSell(_buyOrSell), size(_size), totalVolume(_totalVolume),
-    parent(nullptr), leftChild(nullptr), rightChild(nullptr),
-    headOrder(nullptr), tailOrder(nullptr) {}
+    : limitPrice(_limitPrice),
+      size(_size),
+      totalVolume(_totalVolume),
+      buyOrSell(_buyOrSell),
+      parent(),
+      leftChild(nullptr),
+      rightChild(nullptr),
+      headOrder(nullptr),
+      tailOrder(nullptr)
+{
+}
 
 Limit::~Limit()
 {
-    if (parent != nullptr) {
-        bool leftOrRightChild = (limitPrice < parent->getLimitPrice());
-        // Case 1: Node with only one child or no child
-        if (leftChild == nullptr) {
-            if (leftOrRightChild) {
-                parent->leftChild = rightChild;
-            } else {
-                parent->rightChild = rightChild;
-            }
-            if (rightChild != nullptr) {
-                rightChild->setParent(parent);
-            }
+    auto sharedParent = parent.lock();
+
+    if (sharedParent)
+    {
+        bool isLeftChild = (limitPrice < sharedParent->getLimitPrice());
+
+        // ---- Case 1: Node with only one child or no child ----
+        if (!leftChild)
+        {
+            if (isLeftChild)
+                sharedParent->leftChild = rightChild;
+            else
+                sharedParent->rightChild = rightChild;
+
+            if (rightChild)
+                rightChild->setParent(sharedParent);
             return;
-        } else if (rightChild == nullptr) {
-            if (leftOrRightChild) {
-                parent->leftChild = leftChild;
-            } else {
-                parent->rightChild = leftChild;
-            }
-            leftChild->setParent(parent);
+        }
+        else if (!rightChild)
+        {
+            if (isLeftChild)
+                sharedParent->leftChild = leftChild;
+            else
+                sharedParent->rightChild = leftChild;
+
+            leftChild->setParent(sharedParent);
             return;
         }
 
-        // Case 2: Node with two children
-        Limit* temp = rightChild;
-
-        while (temp->getLeftChild() != nullptr) 
-        {
+        // ---- Case 2: Node with two children ----
+        std::shared_ptr<Limit> temp = rightChild;
+        while (temp->getLeftChild())
             temp = temp->getLeftChild();
-        }
 
-        if (rightChild->getLeftChild() != nullptr)
+        if (auto right = rightChild->getLeftChild())
         {
-            temp->getParent()->setLeftChild(temp->getRightChild());
-            if (temp->getRightChild() != nullptr)
-            {
+            temp->getParent().lock()->setLeftChild(temp->getRightChild());
+            if (temp->getRightChild())
                 temp->getRightChild()->setParent(temp->getParent());
-            }
+
             temp->setRightChild(rightChild);
             rightChild->setParent(temp);
         }
 
-        temp->setParent(parent);
+        temp->setParent(sharedParent);
         temp->setLeftChild(leftChild);
         leftChild->setParent(temp);
-        if (leftOrRightChild) {
-            parent->leftChild = temp;
-        } else {
-            parent->rightChild = temp;
-        }
-    } else
+
+        if (isLeftChild)
+            sharedParent->setLeftChild(temp);
+        else
+            sharedParent->setRightChild(temp);
+    }
+    else
     {
-        // Case 1: Node with only one child or no child
-        if (leftChild == nullptr && rightChild == nullptr) {
-            return;
-        } else if (leftChild == nullptr)
+        // ---- Root case ----
+        if (!leftChild && !rightChild)
         {
-            rightChild->setParent(nullptr);
-            return;
-        } else if (rightChild == nullptr)
-        {
-            leftChild->setParent(nullptr);
             return;
         }
-        
-        // Case 2: Node with two children
-        Limit* temp = rightChild;
-        while (temp->getLeftChild() != nullptr) {
+        else if (!leftChild)
+        {
+            rightChild->setParent(std::weak_ptr<Limit>());
+            return;
+        }
+        else if (!rightChild)
+        {
+            leftChild->setParent(std::weak_ptr<Limit>());
+            return;
+        }
+
+        std::shared_ptr<Limit> temp = rightChild;
+        while (temp->getLeftChild())
             temp = temp->getLeftChild();
-        }
-        if (rightChild->getLeftChild() != nullptr)
+
+        if (auto right = rightChild->getLeftChild())
         {
-            temp->getParent()->setLeftChild(temp->getRightChild());
-            if (temp->getRightChild() != nullptr)
-            {
+            temp->getParent().lock()->setLeftChild(temp->getRightChild());
+            if (temp->getRightChild())
                 temp->getRightChild()->setParent(temp->getParent());
-            }
+
             temp->setRightChild(rightChild);
             rightChild->setParent(temp);
         }
-        temp->setParent(parent); // nullptr
+
+        temp->setParent(std::weak_ptr<Limit>()); // no parent
         temp->setLeftChild(leftChild);
         leftChild->setParent(temp);
     }
 }
 
-Order* Limit::getHeadOrder() const
-{
-    return headOrder;
-}
+// ---- Getters ----
 
-int Limit::getLimitPrice() const
-{
-    return limitPrice;
-}
+std::shared_ptr<Order> Limit::getHeadOrder() const { return headOrder; }
+int Limit::getLimitPrice() { return limitPrice; }
+int Limit::getSize() { return size; }
+int Limit::getTotalVolume() { return totalVolume; }
+bool Limit::getBuyOrSell() { return buyOrSell; }
+std::weak_ptr<Limit> Limit::getParent() const { return parent; }
+std::shared_ptr<Limit> Limit::getLeftChild() const { return leftChild; }
+std::shared_ptr<Limit> Limit::getRightChild() const { return rightChild; }
 
-int Limit::getSize() const
-{
-    return size;
-}
+// ---- Setters ----
 
-int Limit::getTotalVolume() const
-{
-    return totalVolume;
-}
-
-bool Limit::getBuyOrSell() const
-{
-    return buyOrSell;
-}
-
-Limit* Limit::getParent() const
-{
-    return parent;
-}
-
-Limit* Limit::getLeftChild() const
-{
-    return leftChild;
-}
-
-Limit* Limit::getRightChild() const
-{
-    return rightChild;
-}
-
-void Limit::setParent(Limit* newParent)
+void Limit::setParent(const std::weak_ptr<Limit> &newParent)
 {
     parent = newParent;
 }
 
-void Limit::setLeftChild(Limit* newLeftChild)
+void Limit::setLeftChild(const std::shared_ptr<Limit> &newLeftChild)
 {
     leftChild = newLeftChild;
+    if (leftChild)
+        leftChild->setParent(shared_from_this());
 }
 
-void Limit::setRightChild(Limit* newRightChild)
+void Limit::setRightChild(const std::shared_ptr<Limit> &newRightChild)
 {
     rightChild = newRightChild;
+    if (rightChild)
+        rightChild->setParent(shared_from_this());
+}
+
+void Limit::setHeadOrder(const std::weak_ptr<Order> &newHeadOrder)
+{
+    headOrder = newHeadOrder.lock();
+}
+void Limit::setTailOrder(const std::weak_ptr<Order> &newTailOrder)
+{
+    tailOrder = newTailOrder.lock();
 }
 
 void Limit::partiallyFillTotalVolume(int orderedShares)
@@ -155,26 +154,35 @@ void Limit::partiallyFillTotalVolume(int orderedShares)
     totalVolume -= orderedShares;
 }
 
-// Add an order to the limit
-void Limit::append(Order *order)
+// ---- Order Handling ----
+
+void Limit::append(const std::shared_ptr<Order> &order)
 {
-        if (headOrder == nullptr) {
-            headOrder = tailOrder = order;
-        } else {
-            tailOrder->nextOrder = order;
-            order->prevOrder = tailOrder;
-            order->nextOrder = nullptr;
-            tailOrder = order;
-        }
-        size += 1;
-        totalVolume += order->getShares();
-        order->parentLimit = this;
+    if (!headOrder)
+    {
+        headOrder = tailOrder = order;
+    }
+    else
+    {
+        tailOrder->nextOrder = order;
+        order->prevOrder = tailOrder;
+        order->nextOrder = nullptr;
+        tailOrder = order;
+    }
+
+    size++;
+    totalVolume += order->getShares();
+
+    order->parentLimit = shared_from_this();
 }
+
+// ---- Print Helpers ----
 
 void Limit::printForward() const
 {
-    Order* current = headOrder;
-    while (current != nullptr) {
+    auto current = headOrder;
+    while (current)
+    {
         std::cout << current->getOrderId() << " ";
         current = current->nextOrder;
     }
@@ -183,18 +191,19 @@ void Limit::printForward() const
 
 void Limit::printBackward() const
 {
-    Order* current = tailOrder;
-    while (current != nullptr) {
+    auto current = tailOrder;
+    while (current)
+    {
         std::cout << current->getOrderId() << " ";
-        current = current->prevOrder;
+        current = current->prevOrder.lock();
     }
     std::cout << std::endl;
 }
 
 void Limit::print() const
 {
-    std::cout << "Limit Price: " << limitPrice 
-    << ", Limit Volume: " << totalVolume 
-    << ", Limit Size: " << size 
-    << std::endl;
+    std::cout << "Limit Price: " << limitPrice
+              << ", Volume: " << totalVolume
+              << ", Size: " << size
+              << std::endl;
 }

@@ -6,8 +6,12 @@
 #include <string>
 #include <random>
 #include <chrono>
+#include <functional>
 
-OrderPipeline::OrderPipeline(std::shared_ptr<Book> bookParam) : book(bookParam) {
+#include "../constants/common.hpp"
+
+OrderPipeline::OrderPipeline(std::shared_ptr<Book> bookParam)
+    : book(bookParam) {
     orderFunctions = {
         {"Market", &OrderPipeline::processMarketOrder},
         {"AddLimit", &OrderPipeline::processAddLimitOrder},
@@ -19,19 +23,17 @@ OrderPipeline::OrderPipeline(std::shared_ptr<Book> bookParam) : book(bookParam) 
         {"ModifyStop", &OrderPipeline::processModifyStopOrder},
         {"AddStopLimit", &OrderPipeline::processAddStopLimitOrder},
         {"CancelStopLimit", &OrderPipeline::processCancelStopLimitOrder},
-        {"ModifyStopLimit", &OrderPipeline::processModifyStopLimitOrder}
-    };
+        {"ModifyStopLimit", &OrderPipeline::processModifyStopLimitOrder} };
 }
 
-void OrderPipeline::processOrdersFromFile(const std::string& filename) 
-{
+void OrderPipeline::processOrdersFromFile(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        std::cerr << "Error opening file: " << filename << std::endl;
+        std::cerr << "Error opening file to read: " << filename << std::endl;
         return;
     }
 
-    std::ofstream csvFile("order_processing_times.csv", std::ios::trunc); // Open in append mode
+    std::ofstream csvFile((Im::CONST_APP_DIR / "order_processing_times.csv").string(), std::ios::trunc); // Open in append mode
     if (!csvFile.is_open()) {
         std::cerr << "Error opening CSV file for writing." << std::endl;
         return;
@@ -43,28 +45,32 @@ void OrderPipeline::processOrdersFromFile(const std::string& filename)
         std::string orderType;
         iss >> orderType;
 
+        // std::cout << "\nline: " << line << "\n";
+
         auto it = orderFunctions.find(orderType);
-            if (it != orderFunctions.end()) {
-                auto start = std::chrono::steady_clock::now();
+        if (it != orderFunctions.end()) {
+            auto start = std::chrono::steady_clock::now();
 
-                (this->*(it->second))(iss);
+            std::invoke(it->second, this, iss);
+            //(this->*(it->second))(iss);
 
-                auto end = std::chrono::steady_clock::now();
-                auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-                
-                if (orderType == "AddLimit")
-                {
-                    csvFile << orderType << "," << duration.count() << "," << 0 << "," << book->AVLTreeBalanceCount << std::endl;
-                } else {
-                    csvFile << orderType << "," << duration.count() << "," << book->executedOrdersCount << ","  << book->AVLTreeBalanceCount << std::endl;
-                }
-                
+            auto end = std::chrono::steady_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+
+            if (orderType == "AddLimit") {
+                csvFile << orderType << "," << duration.count() << "," << 0 << "," << book->AVLTreeBalanceCount << std::endl;
             } else {
-                std::cerr << "Unknown order type: " << orderType << std::endl;
+                csvFile << orderType << "," << duration.count() << "," << book->executedOrdersCount << "," << book->AVLTreeBalanceCount << std::endl;
             }
+        } else {
+            std::cerr << "Unknown order type: " << orderType << std::endl;
+        }
     }
     file.close();
     csvFile.close();
+
+    std::cout << "\nTotal executed orders: " << book->executedOrdersCount << std::endl;
+    std::cout << "Total AVL tree balances: " << book->AVLTreeBalanceCount << std::endl;
 }
 
 void OrderPipeline::processMarketOrder(std::istringstream& iss) {

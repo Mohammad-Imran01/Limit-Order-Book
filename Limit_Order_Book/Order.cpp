@@ -2,100 +2,133 @@
 #include "Limit.hpp"
 #include <iostream>
 
-Order::Order(int _idNumber, bool _buyOrSell, int _shares, int _limit)
-    : idNumber(_idNumber), buyOrSell(_buyOrSell), shares(_shares), limit(_limit), 
-    nextOrder(nullptr), prevOrder(nullptr), parentLimit(nullptr) {}
-
-int Order::getShares() const
+Order::Order(int _idNumber, bool _buyOrSell, int _shares, int _limitPrice)
+    : idNumber(_idNumber),
+      buyOrSell(_buyOrSell),
+      shares(_shares),
+      limitPrice(_limitPrice)
 {
-    return shares;
 }
 
-int Order::getOrderId() const
+// --- Getters ---
+int Order::getOrderId() { return idNumber; }
+bool Order::getBuyOrSell() { return buyOrSell; }
+int Order::getShares() { return shares; }
+int Order::getLimitPrice() { return limitPrice; }
+std::shared_ptr<Limit> Order::getParentLimit() const { return parentLimit.lock(); }
+std::shared_ptr<Order> Order::getNextOrder() const { return nextOrder; }
+std::shared_ptr<Order> Order::getPrevOrder() const { return prevOrder.lock(); }
+
+// --- Setters ---
+void Order::setParentLimit(const std::weak_ptr<Limit> &limitPar)
 {
-    return idNumber;
+    parentLimit = limitPar;
+}
+void Order::setNextOrder(const std::weak_ptr<Order> &orderNext)
+{
+    nextOrder = orderNext.lock();
+}
+void Order::setPrevOrder(const std::weak_ptr<Order> &orderPrev)
+{
+    prevOrder = orderPrev;
 }
 
-bool Order::getBuyOrSell() const
-{
-    return buyOrSell;
-}
-
-int Order::getLimit() const
-{
-    return limit;
-}
-
-Limit* Order::getParentLimit() const
-{
-    return parentLimit;
-}
-
+// --- Core Logic ---
 void Order::partiallyFillOrder(int orderedShares)
 {
+    // if (orderedShares <= 0) return;
+
+    // if (orderedShares > shares)
+    //     orderedShares = shares;
+
     shares -= orderedShares;
-    parentLimit->partiallyFillTotalVolume(orderedShares);
+
+    if (auto parent = parentLimit.lock())
+    {
+        parent->partiallyFillTotalVolume(orderedShares);
+    }
 }
 
-// Remove order from its parent limit
+// Cancel order safely
 void Order::cancel()
 {
-    if (prevOrder == nullptr)
+    if (prevOrder.lock())
     {
-        parentLimit->headOrder = nextOrder;
-    } else
-    {
-        prevOrder->nextOrder = nextOrder;
+        if (auto par = parentLimit.lock())
+            par->setHeadOrder(nextOrder);
     }
-    if (nextOrder == nullptr)
+    else
     {
-        parentLimit->tailOrder = prevOrder;
-    } else
-    {
-        nextOrder->prevOrder = prevOrder;
-    }
+        if (auto prev = prevOrder.lock())
+            prev->setNextOrder(nextOrder);
+    } // prev or par
 
-    parentLimit->totalVolume -= shares;
-    parentLimit->size -= 1;
+    if (nextOrder)
+        nextOrder->setPrevOrder(prevOrder);
+    else
+    {
+        if (auto parLimit = parentLimit.lock())
+            parLimit->setTailOrder(prevOrder);
+    } // next or par
+
+    if (auto parLimit = parentLimit.lock())
+    {
+        parLimit->totalVolume -= shares;
+        parLimit->size -= 1;
+    }
 }
 
-// Execute head order
+// Execute the order (remove head)
 void Order::execute()
 {
-    parentLimit->headOrder = nextOrder;
-    if (nextOrder == nullptr)
-    {
-        parentLimit->tailOrder = nullptr;
-    } else
-    {
-        nextOrder->prevOrder = nullptr;
-    }
-    nextOrder = nullptr;
-    prevOrder = nullptr;
+    auto parLimit = getParentLimit();
+    parLimit->setHeadOrder(nextOrder);
 
-    parentLimit->totalVolume -= shares;
-    parentLimit->size -= 1;
+    if (nextOrder)
+    {
+        nextOrder->setPrevOrder();
+    }
+    else
+    {
+        if (parLimit)
+            parLimit->setTailOrder();
+    }
+
+    setNextOrder();
+    setPrevOrder();
+
+    if (parLimit)
+    {
+        parLimit->totalVolume -= shares;
+        parLimit->size -= 1;
+    }
 }
 
-void Order::modifyOrder(int newShares, int newLimit)
+// Modify order size and limit
+void Order::modifyOrder(int newShares, int newLimitPrice)
 {
     shares = newShares;
-    limit = newLimit;
-    nextOrder = nullptr;
-    prevOrder = nullptr;
-    parentLimit = nullptr;
+    limitPrice = newLimitPrice;
+
+    // NOTE: Changing limitPrice requires re-insertion in Limit tree
 }
 
+// Set new shares only
 void Order::setShares(int newShares)
 {
     shares = newShares;
 }
 
+// --- Debug ---
 void Order::print() const
 {
-    std::cout << "Order ID: " << idNumber 
-    << ", Order Type: " << (buyOrSell == 1 ? "buy" : "sell") 
-    << ", Order Size: " << shares
-    << ", Order Limit: " << limit 
-    << std::endl;
+    std::cout << "Order ID: " << idNumber
+              << ", Type: " << (buyOrSell ? "Buy" : "Sell")
+              << ", Shares: " << shares
+              << ", Limit: " << limitPrice;
+
+    if (auto parent = parentLimit.lock())
+        std::cout << ", Parent Limit: " << parent->getLimitPrice();
+
+    std::cout << std::endl;
 }

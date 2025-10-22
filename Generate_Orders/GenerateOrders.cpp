@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <functional>
 #include <numeric>
+#include "../constants/common.hpp"
 
 GenerateOrders::GenerateOrders(std::shared_ptr<Book> _book)
     : book(_book), gen(rd())
@@ -62,7 +63,7 @@ void GenerateOrders::addLimit()
 
 void GenerateOrders::cancelLimit()
 {
-    Order *order = book->getRandomOrder(0, gen);
+    std::shared_ptr<Order> order = book->getRandomOrder(0, gen);
 
     if (order == nullptr)
     {
@@ -81,7 +82,7 @@ void GenerateOrders::modifyLimit()
 
     int shares = sharesDist(gen);
 
-    Order *order = book->getRandomOrder(0, gen);
+    std::shared_ptr<Order> order = book->getRandomOrder(0, gen);
 
     if (order == nullptr)
     {
@@ -165,7 +166,7 @@ void GenerateOrders::addStop()
 
 void GenerateOrders::cancelStop()
 {
-    Order *order = book->getRandomOrder(1, gen);
+    std::shared_ptr<Order> order = book->getRandomOrder(1, gen);
 
     if (order == nullptr)
     {
@@ -184,7 +185,7 @@ void GenerateOrders::modifyStop()
 
     int shares = sharesDist(gen);
 
-    Order *order = book->getRandomOrder(1, gen);
+    std::shared_ptr<Order> order = book->getRandomOrder(1, gen);
 
     if (order == nullptr)
     {
@@ -248,7 +249,7 @@ void GenerateOrders::addStopLimit()
 
 void GenerateOrders::cancelStopLimit()
 {
-    Order *order = book->getRandomOrder(2, gen);
+    std::shared_ptr<Order> order = book->getRandomOrder(2, gen);
 
     if (order == nullptr)
     {
@@ -268,7 +269,7 @@ void GenerateOrders::modifyStopLimit()
 
     int shares = sharesDist(gen);
 
-    Order *order = book->getRandomOrder(2, gen);
+    std::shared_ptr<Order> order = book->getRandomOrder(2, gen);
 
     if (order == nullptr)
     {
@@ -302,7 +303,7 @@ void GenerateOrders::modifyStopLimit()
 void GenerateOrders::createOrders(int numberOfOrders)
 {
     // Open a file named "orders.txt" for writing
-    file.open("C:/Users/benja/Documents/Limit_order_book/orders.txt");
+    file.open((Im::CONST_APP_DIR / "orders.txt").string());
 
     if (!file.is_open())
     {
@@ -370,7 +371,7 @@ void GenerateOrders::createOrders(int numberOfOrders)
 void GenerateOrders::createInitialOrders(int numberOfOrders, int centreOfBook)
 {
     // Open a file named "initialOrders.txt" for writing
-    std::ofstream file("C:/Users/benja/Documents/Limit_order_book/initialOrders.txt");
+    std::ofstream file((Im::CONST_APP_DIR / "initialOrders.txt").string());
 
     if (!file.is_open())
     {
