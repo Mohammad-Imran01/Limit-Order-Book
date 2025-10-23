@@ -40,36 +40,42 @@ void OrderPipeline::processOrdersFromFile(const std::string& filename) {
     }
 
     std::string line;
+
+    int readLines = 0, lostlines = 0;
     while (std::getline(file, line)) {
         std::istringstream iss(line);
         std::string orderType;
         iss >> orderType;
 
-        // std::cout << "\nline: " << line << "\n";
+
+        std::cout << line << std::endl;
 
         auto it = orderFunctions.find(orderType);
         if (it != orderFunctions.end()) {
             auto start = std::chrono::steady_clock::now();
 
             std::invoke(it->second, this, iss);
-            //(this->*(it->second))(iss);
 
-            auto end = std::chrono::steady_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+            readLines++;
+            // auto end = std::chrono::steady_clock::now();
+            // auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
 
-            if (orderType == "AddLimit") {
-                csvFile << orderType << "," << duration.count() << "," << 0 << "," << book->AVLTreeBalanceCount << std::endl;
-            } else {
-                csvFile << orderType << "," << duration.count() << "," << book->executedOrdersCount << "," << book->AVLTreeBalanceCount << std::endl;
-            }
+            // if (orderType == "AddLimit") {
+            //     csvFile << orderType << "," << duration.count() << "," << 0 << "," << book->AVLTreeBalanceCount << std::endl;
+            // } else {
+            //     csvFile << orderType << "," << duration.count() << "," << book->executedOrdersCount << "," << book->AVLTreeBalanceCount << std::endl;
+            // }
         } else {
+            lostlines++;
             std::cerr << "Unknown order type: " << orderType << std::endl;
         }
     }
     file.close();
     csvFile.close();
 
-    std::cout << "\nTotal executed orders: " << book->executedOrdersCount << std::endl;
+    std::cout << "\nTotal read lines: " << readLines << std::endl;
+    std::cout << "Total lost lines: " << lostlines << std::endl;
+    std::cout << "Total executed orders: " << book->executedOrdersCount << std::endl;
     std::cout << "Total AVL tree balances: " << book->AVLTreeBalanceCount << std::endl;
 }
 
@@ -81,9 +87,12 @@ void OrderPipeline::processMarketOrder(std::istringstream& iss) {
 }
 
 void OrderPipeline::processAddLimitOrder(std::istringstream& iss) {
+
     int orderId, shares, limitPrice;
     bool buyOrSell;
     iss >> orderId >> buyOrSell >> shares >> limitPrice;
+    // return;
+    // cant go more than 15 addlimit order in initial order file
     book->addLimitOrder(orderId, buyOrSell, shares, limitPrice);
 }
 
@@ -100,6 +109,7 @@ void OrderPipeline::processModifyLimitOrder(std::istringstream& iss) {
 }
 
 void OrderPipeline::processAddStopOrder(std::istringstream& iss) {
+    return;
     int orderId, shares, stopPrice;
     bool buyOrSell;
     iss >> orderId >> buyOrSell >> shares >> stopPrice;
@@ -119,6 +129,7 @@ void OrderPipeline::processModifyStopOrder(std::istringstream& iss) {
 }
 
 void OrderPipeline::processAddStopLimitOrder(std::istringstream& iss) {
+    return;
     int orderId, shares, limitPrice, stopPrice;
     bool buyOrSell;
     iss >> orderId >> buyOrSell >> shares >> limitPrice >> stopPrice;

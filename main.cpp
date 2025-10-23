@@ -25,18 +25,17 @@ int main()
         // generateOrders.createOrders(5000000);
 
         // Start measuring time
-        auto start = std::chrono::high_resolution_clock::now();
+        // auto start = std::chrono::high_resolution_clock::now();
 
-        orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "orders.txt").string());
+        // orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "orders.txt").string());
 
-        // Stop measuring time
-        auto stop = std::chrono::high_resolution_clock::now();
+        // // Stop measuring time
+        // auto stop = std::chrono::high_resolution_clock::now();
 
-        // Calculate the duration
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        // // Calculate the duration
+        // auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 
-        std::cout << "Time taken to process orders: " << duration.count() << " milliseconds" << std::endl;
+        // std::cout << "Time taken to process orders: " << duration.count() << " milliseconds" << std::endl;
     }
-    std::cout << "\nptr cnt: " << book.use_count() << std::endl;
     return 0;
 }

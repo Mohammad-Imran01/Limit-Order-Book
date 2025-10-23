@@ -76,9 +76,10 @@ void Book::marketOrder(int orderId, bool buyOrSell, int shares) {
 
 // Add a std::make_shared<Limit> order to the book
 void Book::addLimitOrder(int orderId, bool buyOrSell, int shares, int limitPrice) {
-    AVLTreeBalanceCount = 0;
+     AVLTreeBalanceCount = 0;
     // Account for order being executed immediately
     shares = limitOrderAsMarketOrder(orderId, buyOrSell, shares, limitPrice);
+
 
     if (shares) {
         std::shared_ptr<Order> newOrder = std::make_shared<Order>(orderId, buyOrSell, shares, limitPrice);
@@ -718,7 +719,7 @@ void Book::deleteFromStopMap(int stopPrice) {
 // execute it as if it were a market order
 int Book::limitOrderAsMarketOrder(int orderId, bool buyOrSell, int shares, int limitPrice) {
     if (buyOrSell) {
-        while (lowestSell != nullptr && shares != 0 && lowestSell->getLimitPrice() <= limitPrice) {
+        while (lowestSell && shares && (lowestSell->getLimitPrice() <= limitPrice)) {
             if (shares <= lowestSell->getTotalVolume()) {
                 marketOrderHelper(orderId, buyOrSell, shares);
                 return 0;
@@ -727,9 +728,8 @@ int Book::limitOrderAsMarketOrder(int orderId, bool buyOrSell, int shares, int l
                 marketOrderHelper(orderId, buyOrSell, lowestSell->getTotalVolume());
             }
         }
-        return shares;
     } else {
-        while (highestBuy != nullptr && shares != 0 && highestBuy->getLimitPrice() >= limitPrice) {
+        while (highestBuy && shares && highestBuy->getLimitPrice() >= limitPrice) {
             if (shares <= highestBuy->getTotalVolume()) {
                 marketOrderHelper(orderId, buyOrSell, shares);
                 return 0;
@@ -738,8 +738,8 @@ int Book::limitOrderAsMarketOrder(int orderId, bool buyOrSell, int shares, int l
                 marketOrderHelper(orderId, buyOrSell, highestBuy->getTotalVolume());
             }
         }
-        return shares;
     }
+    return shares;
 }
 
 // When a stop order overlaps with the highest buy or lowest sell, immediately
@@ -897,7 +897,7 @@ void Book::stopLimitOrderToLimitOrder(std::shared_ptr<Order> headOrder, bool buy
 void Book::marketOrderHelper(int orderId, bool buyOrSell, int shares) {
     auto& bookEdge = buyOrSell ? lowestSell : highestBuy;
 
-    while (bookEdge != nullptr && bookEdge->getHeadOrder()->getShares() <= shares) {
+    while (bookEdge  && bookEdge->getHeadOrder() && bookEdge->getHeadOrder()->getShares() <= shares) {
         std::shared_ptr<Order> headOrder = bookEdge->getHeadOrder();
         shares -= headOrder->getShares();
         headOrder->execute();
@@ -913,7 +913,7 @@ void Book::marketOrderHelper(int orderId, bool buyOrSell, int shares) {
 
         executedOrdersCount += 1;
     }
-    if (bookEdge != nullptr && shares != 0) {
+    if (bookEdge  && bookEdge->getHeadOrder() && shares) {
         bookEdge->getHeadOrder()->partiallyFillOrder(shares);
         executedOrdersCount += 1;
     }

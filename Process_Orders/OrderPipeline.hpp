@@ -14,7 +14,7 @@ private:
     std::shared_ptr<Book> book;
 
     using OrderFunction = void(OrderPipeline::*)(std::istringstream&);
-    std::unordered_map<std::string_view, OrderFunction> orderFunctions;
+    std::unordered_map<std::string, OrderFunction> orderFunctions;
 
     void processMarketOrder(std::istringstream& iss);
     void processAddLimitOrder(std::istringstream& iss);
