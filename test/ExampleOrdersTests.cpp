@@ -4,6 +4,8 @@
 #include "../Process_Orders/OrderPipeline.hpp"
 #include "../Generate_Orders/GenerateOrders.hpp"
 
+#include "constants/common.hpp"
+
 #include <gtest/gtest.h>
 #include <memory>
 
@@ -35,11 +37,11 @@ TEST_F(ExampleOrdersTests, CreateInitialOrdersTest)
 
 TEST_F(ExampleOrdersTests, ProcessInitialOrdersTest)
 {
-    orderPipeline->processOrdersFromFile("C:/Users/benja/Documents/Limit_order_book/initialOrders.txt");
+    orderPipeline->processOrdersFromFile((Im::CONST_APP_DIR / ("initialOrders.txt")).string());
 }
 
 TEST_F(ExampleOrdersTests, CreateOrdersTest)
 {
-    orderPipeline->processOrdersFromFile("C:/Users/benja/Documents/Limit_order_book/initialOrders.txt");
+    orderPipeline->processOrdersFromFile((Im::CONST_APP_DIR / ("initialOrders.txt")).string());
     generateOrders->createOrders(100000);
 }
