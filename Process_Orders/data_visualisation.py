@@ -2,6 +2,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+import os
+cwd = os.getcwd()
+print("my path: "+cwd)
+   
 def create_bar_chart_from_csv(csv_filename):
     # Read the CSV file into a DataFrame
     df = pd.read_csv(csv_filename, header=None, names=['Order Type', 'Times', 'Executed Orders', 'AVL Tree Balances'])
@@ -124,5 +128,5 @@ def create_bar_chart_from_csv(csv_filename):
     # plt.savefig('../figures/3D.png')
 
 
-csv_filename = './order_processing_times.csv'
+csv_filename = cwd + '/Process_Orders/'+ 'order_processing_times.csv'
 create_bar_chart_from_csv(csv_filename)

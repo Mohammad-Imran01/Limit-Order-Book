@@ -5,33 +5,14 @@
 #include <algorithm>
 #include <random>
 #include <iterator>
+#include <queue>
 
 Book::Book() : buyTree(nullptr), sellTree(nullptr), lowestSell(nullptr), highestBuy(nullptr),
 stopBuyTree(nullptr), stopSellTree(nullptr), highestStopSell(nullptr), lowestStopBuy(nullptr) {
 }
 
 // When deleting the book need to ensure all used memory is freed
-Book::~Book() {
-    // for (auto& [id, order] : orderMap) {
-    //     delete order;
-    // }
-    orderMap.clear();
-
-    // for (auto& [limitPrice, limit] : limitBuyMap) {
-    //     delete limit;
-    // }
-    limitBuyMap.clear();
-
-    // for (auto& [limitPrice, limit] : limitSellMap) {
-    //     delete limit;
-    // }
-    limitSellMap.clear();
-
-    // for (auto& [stopPrice, stopLevel] : stopMap) {
-    //     delete stopLevel;
-    // }
-    stopMap.clear();
-}
+Book::~Book() {}
 
 std::shared_ptr<Limit> Book::getBuyTree() const {
     return buyTree;
@@ -76,7 +57,7 @@ void Book::marketOrder(int orderId, bool buyOrSell, int shares) {
 
 // Add a std::make_shared<Limit> order to the book
 void Book::addLimitOrder(int orderId, bool buyOrSell, int shares, int limitPrice) {
-     AVLTreeBalanceCount = 0;
+    AVLTreeBalanceCount = 0;
     // Account for order being executed immediately
     shares = limitOrderAsMarketOrder(orderId, buyOrSell, shares, limitPrice);
 
@@ -110,16 +91,15 @@ void Book::cancelLimitOrder(int orderId) {
     order->cancel();
 
     if (auto parentLimit = order->getParentLimit()) {
-        if (parentLimit->getSize() == 0) {
+        if (parentLimit->getSize() == 0)
             deleteLimit(parentLimit);
-        }
     }
 
     // Remove order from map (you must ensure your map holds shared_ptr<Order>)
     deleteFromOrderMap(orderId);
 
     // Release ownership of this pointer (if this was the last owner, it will delete automatically). Note: it was delete here
-    order.reset();
+    order = nullptr;
     if (order.use_count())
         std::cout << "You broke the code pointer wasnt deleted: " << order.use_count();
 }
@@ -264,14 +244,27 @@ void Book::modifyStopLimitOrder(int orderId, int newShares, int newLimitPrice, i
 
 // Get the height of a limit in a binary tree
 int Book::getLimitHeight(std::shared_ptr<Limit> limit) const {
-    if (limit == nullptr) {
-        return 0; // Height of an empty tree is 0
-    } else {
-        int l_height = getLimitHeight(limit->getLeftChild());
-        int r_height = getLimitHeight(limit->getRightChild());
-        int max = std::max(l_height, r_height) + 1;
-        return max;
+    if (!limit)
+        return 0;
+
+    std::queue<std::shared_ptr<Limit>> q;
+    q.push(limit);
+
+    int height = 0;
+    while (q.size()) {
+        int len = q.size();
+        ++height;
+        while (len--) {
+            auto curr = q.front();
+            q.pop();
+            if (curr && curr->getLeftChild())
+                q.push(curr->getLeftChild());
+            if (curr && curr->getRightChild())
+                q.push(curr->getRightChild());
+
+        }
     }
+    return height;
 }
 
 // Search the order map to find an order
@@ -567,22 +560,24 @@ void Book::updateStopBookEdgeInsert(std::shared_ptr<Limit> newStop) {
 
 // Update the edge of the book if current edge of the book is emptied
 void Book::updateBookEdgeRemove(std::shared_ptr<Limit> limit) {
+    if (!limit)
+        return;
     auto& bookEdge = limit->getBuyOrSell() ? highestBuy : lowestSell;
     auto& tree = limit->getBuyOrSell() ? buyTree : sellTree;
 
     if (limit == bookEdge) {
         if (bookEdge != tree) {
-            if (limit->getBuyOrSell() && bookEdge->getLeftChild() != nullptr) {
+            if (limit->getBuyOrSell() && bookEdge->getLeftChild()) {
                 bookEdge = bookEdge->getLeftChild();
-            } else if (!limit->getBuyOrSell() && bookEdge->getRightChild() != nullptr) {
+            } else if (!limit->getBuyOrSell() && bookEdge->getRightChild()) {
                 bookEdge = bookEdge->getRightChild();
             } else {
                 bookEdge = bookEdge->getParent().lock();
             }
         } else {
-            if (limit->getBuyOrSell() && bookEdge->getLeftChild() != nullptr) {
+            if (limit->getBuyOrSell() && bookEdge->getLeftChild()) {
                 bookEdge = bookEdge->getLeftChild();
-            } else if (!limit->getBuyOrSell() && bookEdge->getRightChild() != nullptr) {
+            } else if (!limit->getBuyOrSell() && bookEdge->getRightChild()) {
                 bookEdge = bookEdge->getRightChild();
             } else {
                 bookEdge = nullptr;
@@ -619,13 +614,14 @@ void Book::updateStopBookEdgeRemove(std::shared_ptr<Limit> stopLevel) {
 
 // Change the root limit in the AVL tree if the root limit is deleted
 void Book::changeBookRoots(std::shared_ptr<Limit> limit) {
+    if (!limit)
+        return;
     auto& tree = limit->getBuyOrSell() ? buyTree : sellTree;
     if (limit == tree) {
-        if (limit->getRightChild() != nullptr) {
+        if (limit->getRightChild()) {
             tree = tree->getRightChild();
-            while (tree->getLeftChild() != nullptr) {
+            while (tree && tree->getLeftChild())
                 tree = tree->getLeftChild();
-            }
         } else {
             tree = limit->getLeftChild();
         }
@@ -649,16 +645,18 @@ void Book::changeStopBookRoots(std::shared_ptr<Limit> stopLevel) {
 
 // Delete a limit after it has been emptied
 void Book::deleteLimit(std::shared_ptr<Limit> limit) {
+    if (!limit)
+        return;
     updateBookEdgeRemove(limit);
     deleteFromLimitMaps(limit->getLimitPrice(), limit->getBuyOrSell());
     changeBookRoots(limit);
 
     std::shared_ptr<Limit> parent = limit->getParent().lock();
     int limitPrice = limit->getLimitPrice();
-    limit.reset();
+    limit = nullptr;
     if (limit.use_count())
         std::cout << "You broke the code pointer wasnt deleted: " << limit.use_count();
-    while (parent != nullptr) {
+    while (parent) {
         parent = balance(parent);
         auto currParent = parent->getParent().lock();
         if (currParent) {
@@ -897,7 +895,7 @@ void Book::stopLimitOrderToLimitOrder(std::shared_ptr<Order> headOrder, bool buy
 void Book::marketOrderHelper(int orderId, bool buyOrSell, int shares) {
     auto& bookEdge = buyOrSell ? lowestSell : highestBuy;
 
-    while (bookEdge  && bookEdge->getHeadOrder() && bookEdge->getHeadOrder()->getShares() <= shares) {
+    while (bookEdge && bookEdge->getHeadOrder() && bookEdge->getHeadOrder()->getShares() <= shares) {
         std::shared_ptr<Order> headOrder = bookEdge->getHeadOrder();
         shares -= headOrder->getShares();
         headOrder->execute();
@@ -913,7 +911,7 @@ void Book::marketOrderHelper(int orderId, bool buyOrSell, int shares) {
 
         executedOrdersCount += 1;
     }
-    if (bookEdge  && bookEdge->getHeadOrder() && shares) {
+    if (bookEdge && bookEdge->getHeadOrder() && shares) {
         bookEdge->getHeadOrder()->partiallyFillOrder(shares);
         executedOrdersCount += 1;
     }
@@ -1059,7 +1057,7 @@ std::shared_ptr<Limit> Book::rl_rotateStop(std::shared_ptr<Limit> parent) {
 std::shared_ptr<Limit> Book::balance(std::shared_ptr<Limit> limit) {
     if (!limit) return nullptr;
 
-    int bal_factor = limitHeightDifference(limit);
+    int bal_factor = 1;//limitHeightDifference(limit);
 
     // Left heavy
     if (bal_factor > 1) {

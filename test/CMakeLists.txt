@@ -5,6 +5,7 @@ set(This LimitOrderBookTests)
 set(Sources
     LimitOrderBookTests.cpp
     ExampleOrdersTests.cpp
+    ./../constants/common.hpp
 )
 
 add_executable(${This} ${Sources})

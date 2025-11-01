@@ -3,3 +3,4 @@
 \googletest
 /Generate_Orders/orders.txt
 .gitmodules 
+/.venv
