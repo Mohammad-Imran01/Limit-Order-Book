@@ -29,6 +29,7 @@ public:
 
     // ---- Getters ----
     std::shared_ptr<Order> getHeadOrder() const;
+    std::shared_ptr<Order> getTailOrder() const;
     int getLimitPrice();
     int getSize();
     int getTotalVolume();

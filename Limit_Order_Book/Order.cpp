@@ -67,9 +67,6 @@ void Order::cancel() {
         parLimit->totalVolume -= shares;
         parLimit->size -= 1;
 
-        // setNextOrder();
-        // setPrevOrder();
-        // setParentLimit();
     }
 }
 

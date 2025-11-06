@@ -18,6 +18,7 @@ int main() {
     GenerateOrders generateOrders(book);
 
     generateOrders.createInitialOrders(90000, 300);
+    // generateOrders.clearOrders(Im::CONST_APP_DIR / "initialOrders.txt");
 
     // orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "initialOrders.txt").string());
 

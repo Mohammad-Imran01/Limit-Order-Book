@@ -51,6 +51,7 @@ Limit::~Limit() {
 // ---- Getters ----
 
 std::shared_ptr<Order> Limit::getHeadOrder() const { return headOrder; }
+std::shared_ptr<Order> Limit::getTailOrder() const { return tailOrder; }
 int Limit::getLimitPrice() { return limitPrice; }
 int Limit::getSize() { return size; }
 int Limit::getTotalVolume() { return totalVolume; }
@@ -62,9 +63,8 @@ std::shared_ptr<Limit> Limit::getRightChild() const { return rightChild; }
 // ---- Setters ----
 
 void Limit::setParent(const std::weak_ptr<Limit>& newParent) {
-    parent = newParent;
+    parent = newParent;   
 }
-
 void Limit::setLeftChild(const std::shared_ptr<Limit>& newLeftChild) {
     leftChild = newLeftChild;
     if (leftChild)

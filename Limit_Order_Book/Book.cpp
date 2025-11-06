@@ -82,16 +82,24 @@ void Book::addLimitOrder(int orderId, bool buyOrSell, int shares, int limitPrice
 void Book::cancelLimitOrder(int orderId) {
     executedOrdersCount = 0;
     AVLTreeBalanceCount = 0;
-    auto order = searchOrderMap(orderId);
+    std::weak_ptr<Order> order = searchOrderMap(orderId);
 
-    if (order) {
-        order->cancel();
-        if (order->getParentLimit() && (order->getParentLimit()->getSize() == 0))
-            deleteLimit(order->getParentLimit());
+    if (auto orderObj = order.lock()) {
+        orderObj->cancel();
+        if (orderObj->getParentLimit() && (orderObj->getParentLimit()->getSize() == 0))
+            deleteLimit(orderObj->getParentLimit());
 
         deleteFromOrderMap(orderId);
-        // limitOrders.erase(order);
-        // delete order;
+
+        // if (orderObj) {
+        //     orderObj->setNextOrder();
+        //     orderObj->setPrevOrder();
+        //     orderObj->setParentLimit();
+        // }
+        if(orderObj && orderObj->getParentLimit()) {
+            std::cout << "Order exist: ";//<< (orderObj->getParentLimit()->)
+            // orderObj->pa
+        }
     }
 }
 
@@ -725,7 +733,7 @@ int Book::limitOrderAsMarketOrder(int orderId, bool buyOrSell, int shares, int l
             }
         }
     } else {
-        while (highestBuy && shares && highestBuy->getLimitPrice() >= limitPrice) {
+        while (highestBuy && shares && (highestBuy->getLimitPrice() >= limitPrice)) {
             if (shares <= highestBuy->getTotalVolume()) {
                 marketOrderHelper(orderId, buyOrSell, shares);
                 return 0;
@@ -1055,7 +1063,7 @@ std::shared_ptr<Limit> Book::rl_rotateStop(std::shared_ptr<Limit> parent) {
 std::shared_ptr<Limit> Book::balance(std::shared_ptr<Limit> limit) {
     if (!limit) return nullptr;
 
-    int bal_factor = 1;//limitHeightDifference(limit);
+    int bal_factor = limitHeightDifference(limit);
 
     // Left heavy
     if (bal_factor > 1) {

@@ -3,6 +3,7 @@
 #include <string>
 
 namespace fs = std::filesystem;
+using SptrLimit = std::shared_ptr<Limit>;
 namespace Im
 {
     static const fs::path CONST_APP_DIR =
