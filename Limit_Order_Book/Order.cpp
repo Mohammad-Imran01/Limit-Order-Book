@@ -1,6 +1,9 @@
 #include "Order.hpp"
 #include "Limit.hpp"
 #include <iostream>
+#include <algorithm>
+#include <string>
+#include <utility>
 
 Order::Order(int _idNumber, bool _buyOrSell, int _shares, int _limitPrice)
     : idNumber(_idNumber),
@@ -43,50 +46,41 @@ void Order::partiallyFillOrder(int orderedShares) {
     }
 }
 
+
 void Order::cancel() {
-    auto prev = prevOrder.lock();
-
-    // 1. Update the previous node's next pointer
-    if (prev) {
-        prev->nextOrder = nextOrder;
-    } else {
-        if (auto parLimit = parentLimit.lock()) {
-            parLimit->setHeadOrder(nextOrder);
-        }
-    }
-
-    // 2. Update the next node's previous pointer
-    if (nextOrder) {
-        nextOrder->setPrevOrder(prevOrder);
-    } else {
-        if (auto parLimit = parentLimit.lock()) {
-            parLimit->setTailOrder(prevOrder);
-        }
-    }
-
-    // 3. Update the Limit's volume and size (Must happen AFTER links are fixed)
     if (auto parLimit = parentLimit.lock()) {
+
+        if (prevOrder.lock() == nullptr) {
+            parLimit->headOrder = nextOrder;
+        } else {
+            if (auto prev = prevOrder.lock()) {
+                prev->nextOrder = nextOrder;
+            }
+        }
+
+        if (!nextOrder) {
+            parLimit->tailOrder = prevOrder.lock();
+        } else {
+            nextOrder->prevOrder = prevOrder;
+        }
+
         parLimit->totalVolume -= shares;
         parLimit->size -= 1;
-    }
 
-    // 4. Detach current node's links to ensure destruction safety
-    nextOrder = nullptr;
-    prevOrder = std::weak_ptr<Order>{};
+        // setNextOrder();
+        // setPrevOrder();
+        // setParentLimit();
+    }
 }
 
-// Execute head order (FIXED: Uses lock() for safe Limit access and uses setters)
+
 void Order::execute() {
-    // 1. Safely acquire a shared pointer to the parent limit
     if (auto parLimit = parentLimit.lock()) {
         parLimit->setHeadOrder(nextOrder);
 
-        // 3. Update links in the next order
         if (nextOrder) {
-            // Set next order's previous to null (empty weak_ptr)
             nextOrder->setPrevOrder(std::weak_ptr<Order>{});
         } else {
-            // If it was the only order, update Limit's tail to null
             parLimit->setTailOrder(std::weak_ptr<Order>{});
         }
         parLimit->totalVolume -= shares;
@@ -101,8 +95,6 @@ void Order::execute() {
 void Order::modifyOrder(int newShares, int newLimitPrice) {
     shares = newShares;
     limitPrice = newLimitPrice;
-
-    // NOTE: Changing limitPrice requires re-insertion in Limit tree
 }
 
 // Set new shares only

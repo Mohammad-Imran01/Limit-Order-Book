@@ -4,6 +4,7 @@
 #include <random>
 #include <fstream>
 #include <memory>
+#include <filesystem>
 
 class Book;
 
@@ -34,6 +35,8 @@ public:
     GenerateOrders(std::shared_ptr<Book> book);
     void createInitialOrders(int numberOfOrders, int centreOfBook);
     void createOrders(int numberOfOrders);
+
+    void clearOrders(const std::filesystem::path&);
 };
 
 #endif

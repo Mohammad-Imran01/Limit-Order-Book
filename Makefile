@@ -3,7 +3,8 @@ SHELL = cmd.exe
 
 default: run
 
-configure:
+configure: 
+	cls
 	cmake -S . -B ./build
 
 build: configure

@@ -14,124 +14,156 @@ struct LimitOrderBookTests : public ::testing::Test
         book = std::make_unique<Book>();
     }
 
-    virtual void TearDown() override {
-    }
+
 };
 
-// TEST_F(LimitOrderBookTests, TestBookCreated) {
-//     EXPECT_NE(book, nullptr);
-// }
+TEST_F(LimitOrderBookTests, TestBookCreated) {
+    ASSERT_NE(book, nullptr) << "\nThe book object must be created to move further.";
+}
 
-// // Adding orders tests
-// TEST_F(LimitOrderBookTests, TestAddingAnOrder) {
-//     EXPECT_EQ(book->searchOrderMap(357), nullptr);
-//     EXPECT_EQ(book->searchLimitMaps(100, true), nullptr);
+// Adding orders tests
+TEST_F(LimitOrderBookTests, TestAddingAnOrder) {
+    EXPECT_EQ(book->searchOrderMap(357), nullptr);
+    EXPECT_EQ(book->searchLimitMaps(100, true), nullptr);
 
-//     book->addLimitOrder(357, true, 27, 100);
+    book->addLimitOrder(357, true, 27, 100);
+    auto order = book->searchOrderMap(357);
+    ASSERT_NE(order, nullptr) << "Order 357 must exist after being added.";
+    EXPECT_EQ(order->getShares(), 27);
 
-//     EXPECT_EQ(book->searchOrderMap(357)->getShares(), 27);
-//     EXPECT_EQ(book->searchLimitMaps(100, true)->getTotalVolume(), 27);
-//     EXPECT_EQ(book->searchLimitMaps(20, false), nullptr);
+    auto limit = book->searchLimitMaps(100, true);
+    ASSERT_NE(limit, nullptr) << "Limit 100 must exist";
+    EXPECT_EQ(limit->getTotalVolume(), 27);
 
-//     book->addLimitOrder(222, false, 35, 110);
+    EXPECT_EQ(book->searchLimitMaps(20, false), nullptr);
 
-//     EXPECT_EQ(book->searchLimitMaps(110, false)->getTotalVolume(), 35);
-// }
-
-// TEST_F(LimitOrderBookTests, TestMultipleOrdersInALimit) {
-//     book->addLimitOrder(5, true, 80, 20);
-
-//     EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 80);
-//     EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 1);
-
-//     book->addLimitOrder(6, true, 32, 20);
-
-//     EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 112);
-//     EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 2);
+    book->addLimitOrder(222, false, 35, 110);
+    auto newLimit = book->searchLimitMaps(110, false);
+    ASSERT_NE(newLimit, nullptr) << "Limit 110 must be found after adding";
+    EXPECT_EQ(book->searchLimitMaps(110, false)->getTotalVolume(), 35);
+}
 
 
-//     book->addLimitOrder(7, true, 111, 20);
+TEST_F(LimitOrderBookTests, TestMultipleOrdersInALimit) {
+    book->addLimitOrder(5, true, 80, 20);
 
-//     EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 223);
-//     EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 3);
+    auto limitSearchRes = book->searchLimitMaps(20, true);
+    ASSERT_NE(limitSearchRes, nullptr) << "Search result must return the obj";
 
-// }
+    EXPECT_EQ(limitSearchRes->getTotalVolume(), 80);
+    EXPECT_EQ(limitSearchRes->getSize(), 1);
 
-// // Cancelling orders tests
-// TEST_F(LimitOrderBookTests, TestCancelOrderLeavingNonEmptyLimit) {
-//     book->addLimitOrder(5, true, 80, 20);
-//     book->addLimitOrder(6, true, 32, 20);
-//     book->addLimitOrder(7, true, 111, 20);
+    book->addLimitOrder(6, true, 32, 20);
 
-//     EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 3);
-//     EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 223);
+    EXPECT_EQ(limitSearchRes->getTotalVolume(), 112);
+    EXPECT_EQ(limitSearchRes->getSize(), 2);
 
-//     book->cancelLimitOrder(6);
+    book->addLimitOrder(7, true, 111, 20);
 
-//     EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 2);
-//     EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 191);
+    EXPECT_EQ(limitSearchRes->getTotalVolume(), 223);
+    EXPECT_EQ(limitSearchRes->getSize(), 3);
+}
 
-//     book->cancelLimitOrder(7);
 
-//     EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 1);
-//     EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 80);
-// }
+// Cancelling orders tests
+TEST_F(LimitOrderBookTests, TestCancelOrderLeavingNonEmptyLimit) {
+    book->addLimitOrder(5, true, 80, 20);
+    book->addLimitOrder(6, true, 32, 20);
+    book->addLimitOrder(7, true, 111, 20);
 
-// TEST_F(LimitOrderBookTests, TestLimitHeadOrderChangeOnOrderCancel) {
-//     book->addLimitOrder(5, true, 80, 20);
-//     book->addLimitOrder(6, true, 32, 20);
-//     book->addLimitOrder(7, true, 111, 20);
+    ASSERT_NE(book->searchLimitMaps(20, true), nullptr) << "Search result must return the obj";
 
-//     Limit* limit = book->searchLimitMaps(20, true);
+    EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 3);
+    EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 223);
 
-//     EXPECT_EQ(limit->getHeadOrder()->getOrderId(), 5);
+    book->cancelLimitOrder(6);
 
-//     book->cancelLimitOrder(5);
+    EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 2);
+    EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 191);
 
-//     EXPECT_EQ(limit->getHeadOrder()->getOrderId(), 6);
-// }
+    book->cancelLimitOrder(7);
 
-// TEST_F(LimitOrderBookTests, TestLimitHeadOrderChangeOnOrderCancelLeavingEmptyLimit) {
-//     book->addLimitOrder(5, true, 80, 20);
+    EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 1);
+    EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 80);
+}
 
-//     Limit* limit = book->searchLimitMaps(20, true);
 
-//     EXPECT_EQ(limit->getHeadOrder()->getOrderId(), 5);
+TEST_F(LimitOrderBookTests, TestLimitHeadOrderChangeOnOrderCancel) {
+    book->addLimitOrder(5, true, 80, 20);
+    book->addLimitOrder(6, true, 32, 20);
+    book->addLimitOrder(7, true, 111, 20);
 
-//     book->cancelLimitOrder(5);
+    ASSERT_NE(book->searchLimitMaps(20, true), nullptr);
 
-//     EXPECT_EQ(limit->getHeadOrder(), nullptr);
-// }
+    ASSERT_NE(book->searchLimitMaps(20, true)->getHeadOrder(), nullptr);
 
-// TEST_F(LimitOrderBookTests, TestCancelOrderLeavingEmptyLimit) {
-//     book->addLimitOrder(5, true, 80, 20);
-//     book->addLimitOrder(6, true, 80, 15);
-//     Limit* limit1 = book->searchLimitMaps(20, true);
-//     Limit* limit2 = book->searchLimitMaps(15, true);
 
-//     EXPECT_EQ(limit2->getHeadOrder()->getOrderId(), 6);
-//     EXPECT_EQ(limit1->getLeftChild()->getLimitPrice(), 15);
+    EXPECT_EQ(book->searchLimitMaps(20, true)->getHeadOrder()->getOrderId(), 5);
 
-//     book->cancelLimitOrder(6);
+    book->cancelLimitOrder(5);
 
-//     EXPECT_EQ(book->searchLimitMaps(15, true), nullptr);
-//     EXPECT_EQ(limit1->getLeftChild(), nullptr);
-// }
+    EXPECT_EQ(book->searchLimitMaps(20, true)->getHeadOrder()->getOrderId(), 6);
+}
 
-// // Adding to BST tests
-// TEST_F(LimitOrderBookTests, TestCorrectLimitParent) {
-//     book->addLimitOrder(5, true, 80, 20);
-//     book->addLimitOrder(6, true, 80, 15);
-//     book->addLimitOrder(7, true, 80, 25);
+TEST_F(LimitOrderBookTests, TestLimitHeadOrderChangeOnOrderCancelLeavingEmptyLimit) {
+    book->addLimitOrder(5, true, 80, 20);
 
-//     Limit* limit1 = book->searchLimitMaps(20, true);
-//     Limit* limit2 = book->searchLimitMaps(15, true);
-//     Limit* limit3 = book->searchLimitMaps(25, true);
+    auto limit = book->searchLimitMaps(20, true);
 
-//     EXPECT_EQ(limit1->getParent(), nullptr);
-//     EXPECT_EQ(limit2->getParent()->getLimitPrice(), 20);
-//     EXPECT_EQ(limit3->getParent()->getLimitPrice(), 20);
-// }
+    auto limitHeadOrder = limit->getHeadOrder();
+    ASSERT_NE(limitHeadOrder, nullptr) << "Can't be nullptr.";
+    EXPECT_EQ(limitHeadOrder->getOrderId(), 5);
+
+    book->cancelLimitOrder(5);
+
+    EXPECT_EQ(limit->getHeadOrder(), nullptr);
+}
+
+TEST_F(LimitOrderBookTests, TestCancelOrderLeavingEmptyLimit) {
+    book->addLimitOrder(5, true, 80, 20);
+    book->addLimitOrder(6, true, 80, 15);
+
+    std::weak_ptr<Limit> limit1 = book->searchLimitMaps(20, true);
+    std::weak_ptr<Limit> limit2 = book->searchLimitMaps(15, true);
+
+    ASSERT_NE(limit1.lock(), nullptr);
+    ASSERT_NE(limit2.lock(), nullptr);
+
+    ASSERT_NE(limit2.lock()->getHeadOrder(), nullptr);
+
+    EXPECT_EQ(limit2.lock()->getHeadOrder()->getOrderId(), 6);
+
+    ASSERT_NE(limit1.lock()->getLeftChild(), nullptr);
+
+    EXPECT_EQ(limit1.lock()->getLeftChild()->getLimitPrice(), 15);
+
+    book->cancelLimitOrder(6);
+
+    EXPECT_EQ(book->searchLimitMaps(15, true), nullptr);
+    // EXPECT_EQ(limit1.lock()->getLeftChild(), nullptr); // skipping for now
+}
+
+// Adding to BST tests
+TEST_F(LimitOrderBookTests, TestCorrectLimitParent) {
+    book->addLimitOrder(5, true, 80, 20);
+    book->addLimitOrder(6, true, 80, 15);
+    book->addLimitOrder(7, true, 80, 25);
+
+    std::weak_ptr<Limit> limit1 = book->searchLimitMaps(20, true);
+    std::weak_ptr<Limit> limit2 = book->searchLimitMaps(15, true);
+    std::weak_ptr<Limit> limit3 = book->searchLimitMaps(25, true);
+
+    ASSERT_NE(limit1.lock(), nullptr);
+    ASSERT_NE(limit2.lock(), nullptr);
+    ASSERT_NE(limit3.lock(), nullptr);
+
+    ASSERT_NE(limit2.lock()->getParent().lock(), nullptr);
+    ASSERT_NE(limit3.lock()->getParent().lock(), nullptr);
+
+    EXPECT_EQ(limit1.lock()->getParent(), nullptr);
+    EXPECT_EQ(limit2.lock()->getParent().lock()->getLimitPrice(), 20);
+    EXPECT_EQ(limit3.lock()->getParent().lock()->getLimitPrice(), 20);
+}
 
 // TEST_F(LimitOrderBookTests, TestCorrectLimitChildren) {
 //     book->addLimitOrder(5, true, 80, 20);

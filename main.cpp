@@ -7,35 +7,42 @@
 #include <vector>
 #include <chrono>
 #include <memory>
-
 #include "./constants/common.hpp"
 
-int main()
-{
+int main() {
+    return 0;//RUN_ALL_TESTS();
     auto book = std::make_shared<Book>();
-    {
-        OrderPipeline orderPipeline(book);
 
-        // GenerateOrders generateOrders(book);
+    OrderPipeline orderPipeline(book);
 
-        // generateOrders.createInitialOrders(10000, 300);
+    GenerateOrders generateOrders(book);
 
-        orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "initialOrders.txt").string());
+    generateOrders.createInitialOrders(90000, 300);
 
-        // generateOrders.createOrders(5000000);
+    // orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "initialOrders.txt").string());
 
-        // Start measuring time
-        // auto start = std::chrono::high_resolution_clock::now();
+    generateOrders.createOrders(50000);
 
-        // orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "orders.txt").string());
 
-        // // Stop measuring time
-        // auto stop = std::chrono::high_resolution_clock::now();
+    // Start measuring time
+    auto start = std::chrono::high_resolution_clock::now();
 
-        // // Calculate the duration
-        // auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    // orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "Orders.txt").string());
 
-        // std::cout << "Time taken to process orders: " << duration.count() << " milliseconds" << std::endl;
-    }
+    // Stop measuring time
+    auto stop = std::chrono::high_resolution_clock::now();
+
+    // Calculate the duration
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+
+    std::cout << "Time taken to process orders: " << duration.count() << " milliseconds" << std::endl;
+
+
+    generateOrders.clearOrders(Im::CONST_APP_DIR / "initialOrders.txt");
+    generateOrders.clearOrders(Im::CONST_APP_DIR / "Orders.txt");
+
+    orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "initialOrders.txt").string());
+    orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "Orders.txt").string());
+
     return 0;
 }

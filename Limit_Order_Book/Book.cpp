@@ -82,26 +82,17 @@ void Book::addLimitOrder(int orderId, bool buyOrSell, int shares, int limitPrice
 void Book::cancelLimitOrder(int orderId) {
     executedOrdersCount = 0;
     AVLTreeBalanceCount = 0;
+    auto order = searchOrderMap(orderId);
 
-    std::shared_ptr<Order> order = searchOrderMap(orderId);
+    if (order) {
+        order->cancel();
+        if (order->getParentLimit() && (order->getParentLimit()->getSize() == 0))
+            deleteLimit(order->getParentLimit());
 
-    if (!order)
-        return;
-
-    order->cancel();
-
-    if (auto parentLimit = order->getParentLimit()) {
-        if (parentLimit->getSize() == 0)
-            deleteLimit(parentLimit);
+        deleteFromOrderMap(orderId);
+        // limitOrders.erase(order);
+        // delete order;
     }
-
-    // Remove order from map (you must ensure your map holds shared_ptr<Order>)
-    deleteFromOrderMap(orderId);
-
-    // Release ownership of this pointer (if this was the last owner, it will delete automatically). Note: it was delete here
-    order = nullptr;
-    if (order.use_count())
-        std::cout << "You broke the code pointer wasnt deleted: " << order.use_count();
 }
 
 // Modify an existing limit order
@@ -470,14 +461,14 @@ void Book::addLimit(int limitPrice, bool buyOrSell) {
     auto& tree = buyOrSell ? buyTree : sellTree;
     auto& bookEdge = buyOrSell ? highestBuy : lowestSell;
 
-    std::shared_ptr<Limit> newLimit = std::make_shared<Limit>(limitPrice, buyOrSell);
+    auto newLimit = std::make_shared<Limit>(limitPrice, buyOrSell);
     limitMap.emplace(limitPrice, newLimit);
 
     if (tree == nullptr) {
         tree = newLimit;
         bookEdge = newLimit;
     } else {
-        std::shared_ptr<Limit> root = insert(tree, newLimit);
+        auto root = insert(tree, newLimit);
         updateBookEdgeInsert(newLimit);
     }
 }
@@ -699,7 +690,14 @@ void Book::deleteStopLevel(std::shared_ptr<Limit> stopLevel) {
 
 // Delete an order from the order map
 void Book::deleteFromOrderMap(int orderId) {
+    if (!orderMap.contains(orderId))
+        return;
     orderMap.erase(orderId);
+    if (!orderMap.contains(orderId)) {
+        std::cout << "\nRemoved order (" << orderId << ") from orderMap";
+    } else {
+        std::cerr << "\nError. order (" << orderId << ") unable to be removed from orderMap";
+    }
 }
 
 // Delete a limit from the limit maps
@@ -896,7 +894,7 @@ void Book::marketOrderHelper(int orderId, bool buyOrSell, int shares) {
     auto& bookEdge = buyOrSell ? lowestSell : highestBuy;
 
     while (bookEdge && bookEdge->getHeadOrder() && bookEdge->getHeadOrder()->getShares() <= shares) {
-        std::shared_ptr<Order> headOrder = bookEdge->getHeadOrder();
+        auto headOrder = bookEdge->getHeadOrder();
         shares -= headOrder->getShares();
         headOrder->execute();
         if (bookEdge->getSize() == 0) {
