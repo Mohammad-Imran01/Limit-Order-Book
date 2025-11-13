@@ -10,7 +10,6 @@
 #include "./constants/common.hpp"
 
 int main() {
-    return 0;//RUN_ALL_TESTS();
     auto book = std::make_shared<Book>();
 
     OrderPipeline orderPipeline(book);
