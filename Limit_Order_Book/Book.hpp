@@ -36,6 +36,7 @@ private:
     void updateBookEdgeRemove(std::shared_ptr<Limit> limit);
     void updateStopBookEdgeRemove(std::shared_ptr<Limit> stopLevel);
     void changeBookRoots(std::shared_ptr<Limit> limit);
+    void changeBookRoots(std::shared_ptr<Limit> deletedLimit, std::shared_ptr<Limit> replacement);
     void changeStopBookRoots(std::shared_ptr<Limit> stopLevel);
     void deleteLimit(std::shared_ptr<Limit> limit);
     void deleteStopLevel(std::shared_ptr<Limit> limit);

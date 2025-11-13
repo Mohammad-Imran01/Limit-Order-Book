@@ -16,7 +16,6 @@ set(Headers
     ./Limit_Order_Book/Order.hpp
     ./Process_Orders/OrderPipeline.hpp
     ./Generate_Orders/GenerateOrders.hpp
-    ./constants/common.hpp
 )
 set(Sources
     ./Limit_Order_Book/Book.cpp
@@ -30,7 +29,7 @@ set(Sources
 add_library(${PROJECT_NAME}_lib STATIC ${Sources} ${Headers})
 
 # Define the executable target
-add_executable(${PROJECT_NAME} main.cpp)
+add_executable(${PROJECT_NAME} main.cpp ./constants/common.hpp)
 
 # Link the executable with the library
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_lib)

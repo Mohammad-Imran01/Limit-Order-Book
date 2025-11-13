@@ -8,6 +8,7 @@ class Order;
 class Limit : public std::enable_shared_from_this<Limit>
 {
 private:
+    int m_height;
     int limitPrice;
     int size;
     int totalVolume;
@@ -25,11 +26,13 @@ private:
 public:
     // ---- Constructor & Destructor ----
     Limit(int _limitPrice, bool _buyOrSell, int _size = 0, int _totalVolume = 0);
-    ~Limit();
 
     // ---- Getters ----
     std::shared_ptr<Order> getHeadOrder() const;
     std::shared_ptr<Order> getTailOrder() const;
+
+    void calculateAndSetHeight();
+    int height() const { return m_height; }
     int getLimitPrice();
     int getSize();
     int getTotalVolume();

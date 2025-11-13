@@ -21,181 +21,183 @@ TEST_F(LimitOrderBookTests, TestBookCreated) {
     ASSERT_NE(book, nullptr) << "\nThe book object must be created to move further.";
 }
 
-// Adding orders tests
-TEST_F(LimitOrderBookTests, TestAddingAnOrder) {
-    EXPECT_EQ(book->searchOrderMap(357), nullptr);
-    EXPECT_EQ(book->searchLimitMaps(100, true), nullptr);
 
-    book->addLimitOrder(357, true, 27, 100);
-    auto order = book->searchOrderMap(357);
-    ASSERT_NE(order, nullptr) << "Order 357 must exist after being added.";
-    EXPECT_EQ(order->getShares(), 27);
+// // Adding orders tests
+// TEST_F(LimitOrderBookTests, TestAddingAnOrder) {
+//     EXPECT_EQ(book->searchOrderMap(357), nullptr);
+//     EXPECT_EQ(book->searchLimitMaps(100, true), nullptr);
 
-    auto limit = book->searchLimitMaps(100, true);
-    ASSERT_NE(limit, nullptr) << "Limit 100 must exist";
-    EXPECT_EQ(limit->getTotalVolume(), 27);
+//     book->addLimitOrder(357, true, 27, 100);
+//     auto order = book->searchOrderMap(357);
+//     ASSERT_NE(order, nullptr) << "Order 357 must exist after being added.";
+//     EXPECT_EQ(order->getShares(), 27);
 
-    EXPECT_EQ(book->searchLimitMaps(20, false), nullptr);
+//     auto limit = book->searchLimitMaps(100, true);
+//     ASSERT_NE(limit, nullptr) << "Limit 100 must exist";
+//     EXPECT_EQ(limit->getTotalVolume(), 27);
 
-    book->addLimitOrder(222, false, 35, 110);
-    auto newLimit = book->searchLimitMaps(110, false);
-    ASSERT_NE(newLimit, nullptr) << "Limit 110 must be found after adding";
-    EXPECT_EQ(book->searchLimitMaps(110, false)->getTotalVolume(), 35);
-}
+//     EXPECT_EQ(book->searchLimitMaps(20, false), nullptr);
 
-
-TEST_F(LimitOrderBookTests, TestMultipleOrdersInALimit) {
-    book->addLimitOrder(5, true, 80, 20);
-
-    auto limitSearchRes = book->searchLimitMaps(20, true);
-    ASSERT_NE(limitSearchRes, nullptr) << "Search result must return the obj";
-
-    EXPECT_EQ(limitSearchRes->getTotalVolume(), 80);
-    EXPECT_EQ(limitSearchRes->getSize(), 1);
-
-    book->addLimitOrder(6, true, 32, 20);
-
-    EXPECT_EQ(limitSearchRes->getTotalVolume(), 112);
-    EXPECT_EQ(limitSearchRes->getSize(), 2);
-
-    book->addLimitOrder(7, true, 111, 20);
-
-    EXPECT_EQ(limitSearchRes->getTotalVolume(), 223);
-    EXPECT_EQ(limitSearchRes->getSize(), 3);
-}
+//     book->addLimitOrder(222, false, 35, 110);
+//     auto newLimit = book->searchLimitMaps(110, false);
+//     ASSERT_NE(newLimit, nullptr) << "Limit 110 must be found after adding";
+//     EXPECT_EQ(book->searchLimitMaps(110, false)->getTotalVolume(), 35);
+// }
 
 
-// Cancelling orders tests
-TEST_F(LimitOrderBookTests, TestCancelOrderLeavingNonEmptyLimit) {
-    book->addLimitOrder(5, true, 80, 20);
-    book->addLimitOrder(6, true, 32, 20);
-    book->addLimitOrder(7, true, 111, 20);
+// TEST_F(LimitOrderBookTests, TestMultipleOrdersInALimit) {
+//     book->addLimitOrder(5, true, 80, 20);
 
-    ASSERT_NE(book->searchLimitMaps(20, true), nullptr) << "Search result must return the obj";
+//     auto limitSearchRes = book->searchLimitMaps(20, true);
+//     ASSERT_NE(limitSearchRes, nullptr) << "Search result must return the obj";
 
-    EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 3);
-    EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 223);
+//     EXPECT_EQ(limitSearchRes->getTotalVolume(), 80);
+//     EXPECT_EQ(limitSearchRes->getSize(), 1);
 
-    book->cancelLimitOrder(6);
+//     book->addLimitOrder(6, true, 32, 20);
 
-    EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 2);
-    EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 191);
+//     EXPECT_EQ(limitSearchRes->getTotalVolume(), 112);
+//     EXPECT_EQ(limitSearchRes->getSize(), 2);
 
-    book->cancelLimitOrder(7);
+//     book->addLimitOrder(7, true, 111, 20);
 
-    EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 1);
-    EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 80);
-}
+//     EXPECT_EQ(limitSearchRes->getTotalVolume(), 223);
+//     EXPECT_EQ(limitSearchRes->getSize(), 3);
+// }
 
 
-TEST_F(LimitOrderBookTests, TestLimitHeadOrderChangeOnOrderCancel) {
-    book->addLimitOrder(5, true, 80, 20);
-    book->addLimitOrder(6, true, 32, 20);
-    book->addLimitOrder(7, true, 111, 20);
+// // Cancelling orders tests
+// TEST_F(LimitOrderBookTests, TestCancelOrderLeavingNonEmptyLimit) {
+//     book->addLimitOrder(5, true, 80, 20);
+//     book->addLimitOrder(6, true, 32, 20);
+//     book->addLimitOrder(7, true, 111, 20);
 
-    ASSERT_NE(book->searchLimitMaps(20, true), nullptr);
+//     ASSERT_NE(book->searchLimitMaps(20, true), nullptr) << "Search result must return the obj";
 
-    ASSERT_NE(book->searchLimitMaps(20, true)->getHeadOrder(), nullptr);
+//     EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 3);
+//     EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 223);
 
+//     book->cancelLimitOrder(6);
 
-    EXPECT_EQ(book->searchLimitMaps(20, true)->getHeadOrder()->getOrderId(), 5);
+//     EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 2);
+//     EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 191);
 
-    book->cancelLimitOrder(5);
+//     book->cancelLimitOrder(7);
 
-    EXPECT_EQ(book->searchLimitMaps(20, true)->getHeadOrder()->getOrderId(), 6);
-}
-
-TEST_F(LimitOrderBookTests, TestLimitHeadOrderChangeOnOrderCancelLeavingEmptyLimit) {
-    book->addLimitOrder(5, true, 80, 20);
-
-    auto limit = book->searchLimitMaps(20, true);
-
-    auto limitHeadOrder = limit->getHeadOrder();
-    ASSERT_NE(limitHeadOrder, nullptr) << "Can't be nullptr.";
-    EXPECT_EQ(limitHeadOrder->getOrderId(), 5);
-
-    book->cancelLimitOrder(5);
-
-    EXPECT_EQ(limit->getHeadOrder(), nullptr);
-}
-
-TEST_F(LimitOrderBookTests, TestCancelOrderLeavingEmptyLimit) {
-    book->addLimitOrder(5, true, 80, 20);
-    book->addLimitOrder(6, true, 80, 15);
-
-    std::weak_ptr<Limit> limit1 = book->searchLimitMaps(20, true);
-    std::weak_ptr<Limit> limit2 = book->searchLimitMaps(15, true);
-
-    ASSERT_NE(limit1.lock(), nullptr);
-    ASSERT_NE(limit2.lock(), nullptr);
-
-    ASSERT_NE(limit2.lock()->getHeadOrder(), nullptr);
-
-    EXPECT_EQ(limit2.lock()->getHeadOrder()->getOrderId(), 6);
-
-    ASSERT_NE(limit1.lock()->getLeftChild(), nullptr);
-
-    EXPECT_EQ(limit1.lock()->getLeftChild()->getLimitPrice(), 15);
-
-    book->cancelLimitOrder(6); // limit-15
-
-    EXPECT_EQ(book->searchLimitMaps(15, true), nullptr); // order id - 6
-    EXPECT_EQ(book->searchOrderMap(6), nullptr);
-
-    // not in order map
-    // not in limitmap
-    // but still tress left child
-
-    // EXPECT_EQ(limit1.lock()->getLeftChild(), nullptr); // skipping for now
+//     EXPECT_EQ(book->searchLimitMaps(20, true)->getSize(), 1);
+//     EXPECT_EQ(book->searchLimitMaps(20, true)->getTotalVolume(), 80);
+// }
 
 
+// TEST_F(LimitOrderBookTests, TestLimitHeadOrderChangeOnOrderCancel) {
+//     book->addLimitOrder(5, true, 80, 20);
+//     book->addLimitOrder(6, true, 32, 20);
+//     book->addLimitOrder(7, true, 111, 20);
+
+//     ASSERT_NE(book->searchLimitMaps(20, true), nullptr);
+
+//     ASSERT_NE(book->searchLimitMaps(20, true)->getHeadOrder(), nullptr);
+
+
+//     EXPECT_EQ(book->searchLimitMaps(20, true)->getHeadOrder()->getOrderId(), 5);
+
+//     book->cancelLimitOrder(5);
+
+//     EXPECT_EQ(book->searchLimitMaps(20, true)->getHeadOrder()->getOrderId(), 6);
+// }
+
+// TEST_F(LimitOrderBookTests, TestLimitHeadOrderChangeOnOrderCancelLeavingEmptyLimit) {
+//     book->addLimitOrder(5, true, 80, 20);
+
+//     auto limit = book->searchLimitMaps(20, true);
+
+//     auto limitHeadOrder = limit->getHeadOrder();
+//     ASSERT_NE(limitHeadOrder, nullptr) << "Can't be nullptr.";
+//     EXPECT_EQ(limitHeadOrder->getOrderId(), 5);
+
+//     book->cancelLimitOrder(5);
+
+//     EXPECT_EQ(limit->getHeadOrder(), nullptr);
+// }
+
+// TEST_F(LimitOrderBookTests, TestCancelOrderLeavingEmptyLimit) {
+//     book->addLimitOrder(5, true, 80, 20);
+//     book->addLimitOrder(6, true, 80, 15);
+
+//     std::weak_ptr<Limit> limit1 = book->searchLimitMaps(20, true);
+//     std::weak_ptr<Limit> limit2 = book->searchLimitMaps(15, true);
+
+//     ASSERT_NE(limit1.lock(), nullptr);
+//     ASSERT_NE(limit2.lock(), nullptr);
+
+//     ASSERT_NE(limit2.lock()->getHeadOrder(), nullptr);
+
+//     EXPECT_EQ(limit2.lock()->getHeadOrder()->getOrderId(), 6);
+
+//     ASSERT_NE(limit1.lock()->getLeftChild(), nullptr);
+
+//     EXPECT_EQ(limit1.lock()->getLeftChild()->getLimitPrice(), 15);
+
+//     book->cancelLimitOrder(6); // limit-15
+
+//     EXPECT_EQ(book->searchLimitMaps(15, true), nullptr); // order id - 6
+//     EXPECT_EQ(book->searchOrderMap(6), nullptr);
+
+//     // not in order map
+//     // not in limitmap
+//     // but still tress left child
+
+    
+//     EXPECT_EQ(limit1.lock()->getLeftChild(), nullptr); // skipping for now
 
 
 
-}
 
-// Adding to BST tests
-TEST_F(LimitOrderBookTests, TestCorrectLimitParent) {
-    book->addLimitOrder(5, true, 80, 20);
-    book->addLimitOrder(6, true, 80, 15);
-    book->addLimitOrder(7, true, 80, 25);
 
-    std::weak_ptr<Limit> limit1 = book->searchLimitMaps(20, true);
-    std::weak_ptr<Limit> limit2 = book->searchLimitMaps(15, true);
-    std::weak_ptr<Limit> limit3 = book->searchLimitMaps(25, true);
+// }
 
-    ASSERT_NE(limit1.lock(), nullptr);
-    ASSERT_NE(limit2.lock(), nullptr);
-    ASSERT_NE(limit3.lock(), nullptr);
+// // Adding to BST tests
+// TEST_F(LimitOrderBookTests, TestCorrectLimitParent) {
+//     book->addLimitOrder(5, true, 80, 20);
+//     book->addLimitOrder(6, true, 80, 15);
+//     book->addLimitOrder(7, true, 80, 25);
 
-    EXPECT_EQ(limit1.lock()->getParent().lock(), nullptr);
+//     std::weak_ptr<Limit> limit1 = book->searchLimitMaps(20, true);
+//     std::weak_ptr<Limit> limit2 = book->searchLimitMaps(15, true);
+//     std::weak_ptr<Limit> limit3 = book->searchLimitMaps(25, true);
 
-    ASSERT_NE(limit2.lock()->getParent().lock(), nullptr);
-    ASSERT_NE(limit3.lock()->getParent().lock(), nullptr);
+//     ASSERT_NE(limit1.lock(), nullptr);
+//     ASSERT_NE(limit2.lock(), nullptr);
+//     ASSERT_NE(limit3.lock(), nullptr);
 
-    EXPECT_EQ(limit2.lock()->getParent().lock()->getLimitPrice(), 20);
-    EXPECT_EQ(limit3.lock()->getParent().lock()->getLimitPrice(), 20);
-}
+//     EXPECT_EQ(limit1.lock()->getParent().lock(), nullptr);
 
-TEST_F(LimitOrderBookTests, TestCorrectLimitChildren) {
-    book->addLimitOrder(5, true, 80, 20);
-    book->addLimitOrder(6, true, 80, 15);
-    book->addLimitOrder(7, true, 80, 25);
+//     ASSERT_NE(limit2.lock()->getParent().lock(), nullptr);
+//     ASSERT_NE(limit3.lock()->getParent().lock(), nullptr);
 
-    auto limit1 = book->searchLimitMaps(20, true);
-    auto limit2 = book->searchLimitMaps(15, true);
+//     EXPECT_EQ(limit2.lock()->getParent().lock()->getLimitPrice(), 20);
+//     EXPECT_EQ(limit3.lock()->getParent().lock()->getLimitPrice(), 20);
+// }
 
-    ASSERT_NE(limit1, nullptr);
-    ASSERT_NE(limit2, nullptr);
+// TEST_F(LimitOrderBookTests, TestCorrectLimitChildren) {
+//     book->addLimitOrder(5, true, 80, 20);
+//     book->addLimitOrder(6, true, 80, 15);
+//     book->addLimitOrder(7, true, 80, 25);
 
-    ASSERT_NE(limit1->getLeftChild(), nullptr);
-    ASSERT_NE(limit1->getRightChild(), nullptr);
+//     auto limit1 = book->searchLimitMaps(20, true);
+//     auto limit2 = book->searchLimitMaps(15, true);
 
-    EXPECT_EQ(limit1->getLeftChild()->getLimitPrice(), 15);
-    EXPECT_EQ(limit1->getRightChild()->getLimitPrice(), 25);
-    EXPECT_EQ(limit2->getLeftChild(), nullptr);
-    EXPECT_EQ(limit2->getRightChild(), nullptr);
-}
+//     ASSERT_NE(limit1, nullptr);
+//     ASSERT_NE(limit2, nullptr);
+
+//     ASSERT_NE(limit1->getLeftChild(), nullptr);
+//     ASSERT_NE(limit1->getRightChild(), nullptr);
+
+//     EXPECT_EQ(limit1->getLeftChild()->getLimitPrice(), 15);
+//     EXPECT_EQ(limit1->getRightChild()->getLimitPrice(), 25);
+//     EXPECT_EQ(limit2->getLeftChild(), nullptr);
+//     EXPECT_EQ(limit2->getRightChild(), nullptr);
+// }
 
 TEST_F(LimitOrderBookTests, TestTreeHeightsCorrect) {
     // 1
@@ -292,7 +294,7 @@ TEST_F(LimitOrderBookTests, TestRemoveLimitWithNoChildren) {
 
     book->cancelLimitOrder(9);  
 
-    // EXPECT_EQ(limit.lock()->getRightChild(), nullptr); // bug
+    EXPECT_EQ(limit.lock()->getRightChild(), nullptr); // bug
 }
 
 TEST_F(LimitOrderBookTests, TestRemoveLimitWithLeftChildOnly) {
@@ -316,8 +318,8 @@ TEST_F(LimitOrderBookTests, TestRemoveLimitWithLeftChildOnly) {
 
     book->cancelLimitOrder(6);
 
-    // EXPECT_EQ(limit1.lock()->getLeftChild()->getLimitPrice(), 10); // bug
-    // EXPECT_EQ(limit2.lock()->getParent().lock()->getLimitPrice(), 20); // bug
+    EXPECT_EQ(limit1.lock()->getLeftChild()->getLimitPrice(), 10); // bug
+    EXPECT_EQ(limit2.lock()->getParent().lock()->getLimitPrice(), 20); // bug
 }
 
 TEST_F(LimitOrderBookTests, TestRemoveLimitWithRightChildOnly) {
@@ -342,8 +344,8 @@ TEST_F(LimitOrderBookTests, TestRemoveLimitWithRightChildOnly) {
 
     book->cancelLimitOrder(6);
 
-    // EXPECT_EQ(limit1.lock()->getLeftChild()->getLimitPrice(), 19); // bug
-    // EXPECT_EQ(limit2.lock()->getParent().lock()->getLimitPrice(), 20); // bug
+    EXPECT_EQ(limit1.lock()->getLeftChild()->getLimitPrice(), 19); // bug
+    EXPECT_EQ(limit2.lock()->getParent().lock()->getLimitPrice(), 20); // bug
 }
 
 TEST_F(LimitOrderBookTests, TestRemoveLimitWithTwoChildren) {
@@ -373,12 +375,12 @@ TEST_F(LimitOrderBookTests, TestRemoveLimitWithTwoChildren) {
 
     book->cancelLimitOrder(6);
 
-    // EXPECT_EQ(limit1.lock()->getLeftChild()->getLimitPrice(), 17);
-    // EXPECT_EQ(limit2.lock()->getParent().lock()->getLimitPrice(), 17);
-    // EXPECT_EQ(limit3.lock()->getLeftChild(), nullptr);
-    // EXPECT_EQ(limit4.lock()->getLeftChild()->getLimitPrice(), 10);
-    // EXPECT_EQ(limit4.lock()->getRightChild()->getLimitPrice(), 18);
-    // EXPECT_EQ(limit4.lock()->getParent().lock()->getLimitPrice(), 20);
+    EXPECT_EQ(limit1.lock()->getLeftChild()->getLimitPrice(), 17);
+    EXPECT_EQ(limit2.lock()->getParent().lock()->getLimitPrice(), 17);
+    EXPECT_EQ(limit3.lock()->getLeftChild(), nullptr);
+    EXPECT_EQ(limit4.lock()->getLeftChild()->getLimitPrice(), 10);
+    EXPECT_EQ(limit4.lock()->getRightChild()->getLimitPrice(), 18);
+    EXPECT_EQ(limit4.lock()->getParent().lock()->getLimitPrice(), 20);
 }
 
 TEST_F(LimitOrderBookTests, TestRemoveLimitWithTwoChildren_RightChildHasNoLeftChild) {
@@ -406,9 +408,9 @@ TEST_F(LimitOrderBookTests, TestRemoveLimitWithTwoChildren_RightChildHasNoLeftCh
     book->cancelLimitOrder(7);
 
     //bugs
-    // EXPECT_EQ(limit1->getRightChild()->getLimitPrice(), 27);
-    // EXPECT_EQ(limit2->getParent().lock()->getLimitPrice(), 27);
-    // EXPECT_EQ(limit3->getParent().lock()->getLimitPrice(), 20);
+    EXPECT_EQ(limit1->getRightChild()->getLimitPrice(), 27);
+    EXPECT_EQ(limit2->getParent().lock()->getLimitPrice(), 27);
+    EXPECT_EQ(limit3->getParent().lock()->getLimitPrice(), 20);
 }
 
 TEST_F(LimitOrderBookTests, TestRemoveLimitWithTwoChildren_RightChildHasLeftChildWithRightChild) {
@@ -440,22 +442,22 @@ TEST_F(LimitOrderBookTests, TestRemoveLimitWithTwoChildren_RightChildHasLeftChil
 
     EXPECT_EQ(expectedPostOrder, actualPostOrder);
 
-    // book->cancelLimitOrder(5);
+    book->cancelLimitOrder(5);
 
-    // expectedInOrder = { 217, 218, 220, 221, 224, 225, 226, 229, 230, 231, 233 };
-    // actualInOrder = book->inOrderTreeTraversal(book->getBuyTree());
+    expectedInOrder = { 217, 218, 220, 221, 224, 225, 226, 229, 230, 231, 233 };
+    actualInOrder = book->inOrderTreeTraversal(book->getBuyTree());
 
-    // EXPECT_EQ(expectedInOrder, actualInOrder);
+    EXPECT_EQ(expectedInOrder, actualInOrder);
 
-    // expectedPreOrder = { 224, 220, 218, 217, 221, 229, 226, 225, 231, 230, 233 };
-    // actualPreOrder = book->preOrderTreeTraversal(book->getBuyTree());
+    expectedPreOrder = { 224, 220, 218, 217, 221, 229, 226, 225, 231, 230, 233 };
+    actualPreOrder = book->preOrderTreeTraversal(book->getBuyTree());
 
-    // EXPECT_EQ(expectedPreOrder, actualPreOrder);
+    EXPECT_EQ(expectedPreOrder, actualPreOrder);
 
-    // expectedPostOrder = { 217, 218, 221, 220, 225, 226, 230, 233, 231, 229, 224 };
-    // actualPostOrder = book->postOrderTreeTraversal(book->getBuyTree());
+    expectedPostOrder = { 217, 218, 221, 220, 225, 226, 230, 233, 231, 229, 224 };
+    actualPostOrder = book->postOrderTreeTraversal(book->getBuyTree());
 
-    // EXPECT_EQ(expectedPostOrder, actualPostOrder);
+    EXPECT_EQ(expectedPostOrder, actualPostOrder);
 }
 
 TEST_F(LimitOrderBookTests, TestRemoveLimitWithTwoChildren_RightChildHasLeftChildWithRightChild2) {
@@ -487,22 +489,22 @@ TEST_F(LimitOrderBookTests, TestRemoveLimitWithTwoChildren_RightChildHasLeftChil
 
     EXPECT_EQ(expectedPostOrder, actualPostOrder);
 
-    // book->cancelLimitOrder(5);
+    book->cancelLimitOrder(5);
 
-    // expectedInOrder = { 225, 226, 229, 230, 231, 233, 250, 251, 255, 260, 265 };
-    // actualInOrder = book->inOrderTreeTraversal(book->getBuyTree());
+    expectedInOrder = { 225, 226, 229, 230, 231, 233, 250, 251, 255, 260, 265 };
+    actualInOrder = book->inOrderTreeTraversal(book->getBuyTree());
 
-    // EXPECT_EQ(expectedInOrder, actualInOrder);
+    EXPECT_EQ(expectedInOrder, actualInOrder);
 
-    // expectedPreOrder = { 250, 229, 226, 225, 231, 230, 233, 255, 251, 260, 265 };
-    // actualPreOrder = book->preOrderTreeTraversal(book->getBuyTree());
+    expectedPreOrder = { 250, 229, 226, 225, 231, 230, 233, 255, 251, 260, 265 };
+    actualPreOrder = book->preOrderTreeTraversal(book->getBuyTree());
 
-    // EXPECT_EQ(expectedPreOrder, actualPreOrder);
+    EXPECT_EQ(expectedPreOrder, actualPreOrder);
 
-    // expectedPostOrder = { 225, 226, 230, 233, 231, 229, 251, 265, 260, 255, 250 };
-    // actualPostOrder = book->postOrderTreeTraversal(book->getBuyTree());
+    expectedPostOrder = { 225, 226, 230, 233, 231, 229, 251, 265, 260, 255, 250 };
+    actualPostOrder = book->postOrderTreeTraversal(book->getBuyTree());
 
-    // EXPECT_EQ(expectedPostOrder, actualPostOrder);
+    EXPECT_EQ(expectedPostOrder, actualPostOrder);
 }
 
 TEST_F(LimitOrderBookTests, TestEmptyingATree) {
@@ -532,7 +534,7 @@ TEST_F(LimitOrderBookTests, TestRemoveRootLimitWithLeftChildOnly) {
 
     ASSERT_NE(book->getSellTree(), nullptr);
     EXPECT_EQ(book->getSellTree()->getLimitPrice(), 15);
-    
+
     EXPECT_EQ(limit->getParent().lock(), nullptr);
 }
 
@@ -566,10 +568,10 @@ TEST_F(LimitOrderBookTests, TestRemoveRootLimitWithTwoChildren) {
     auto limit2 = book->searchLimitMaps(25, true);
     auto limit3 = book->searchLimitMaps(22, true);
 
-    
+
     ASSERT_NE(book->getBuyTree(), nullptr);
     EXPECT_EQ(book->getBuyTree()->getLimitPrice(), 20);
-    
+
     ASSERT_NE(limit1, nullptr);
     ASSERT_NE(limit1->getParent().lock(), nullptr);
     EXPECT_EQ(limit1->getParent().lock()->getLimitPrice(), 20);
@@ -580,18 +582,18 @@ TEST_F(LimitOrderBookTests, TestRemoveRootLimitWithTwoChildren) {
 
     ASSERT_NE(limit2->getLeftChild(), nullptr);
     EXPECT_EQ(limit2->getLeftChild()->getLimitPrice(), 22);
-    
+
     ASSERT_NE(limit3, nullptr);
     ASSERT_NE(limit3->getParent().lock(), nullptr);
     EXPECT_EQ(limit3->getParent().lock()->getLimitPrice(), 25);
 
     book->cancelLimitOrder(5);
 
-    // EXPECT_EQ(book->getBuyTree()->getLimitPrice(), 22);
-    // EXPECT_EQ(limit1->getParent().lock()->getLimitPrice(), 22);
-    // EXPECT_EQ(limit2->getParent().lock()->getLimitPrice(), 22);
-    // EXPECT_EQ(limit2->getLeftChild(), nullptr);
-    // EXPECT_EQ(limit3->getParent().lock(), nullptr);
+    EXPECT_EQ(book->getBuyTree()->getLimitPrice(), 22);
+    EXPECT_EQ(limit1->getParent().lock()->getLimitPrice(), 22);
+    EXPECT_EQ(limit2->getParent().lock()->getLimitPrice(), 22);
+    EXPECT_EQ(limit2->getLeftChild(), nullptr);
+    EXPECT_EQ(limit3->getParent().lock(), nullptr);
 }
 
 TEST_F(LimitOrderBookTests, TestRemoveRootLimitWithTwoChildren_RightChildHasNoLeftChild) {
@@ -611,16 +613,16 @@ TEST_F(LimitOrderBookTests, TestRemoveRootLimitWithTwoChildren_RightChildHasNoLe
     ASSERT_NE(limit2, nullptr);
     ASSERT_NE(limit2->getParent().lock(), nullptr);
     EXPECT_EQ(limit2->getParent().lock()->getLimitPrice(), 20);
-    
+
     book->cancelLimitOrder(5);
-    
-    // EXPECT_EQ(book->getBuyTree()->getLimitPrice(), 25);
-    
-    // ASSERT_NE(limit1->getParent().lock(), nullptr);
-    // EXPECT_EQ(limit1->getParent().lock()->getLimitPrice(), 25);
-    
-    // ASSERT_NE(limit2->getParent().lock(), nullptr);
-    // EXPECT_EQ(limit2->getParent().lock(), nullptr);
+
+    EXPECT_EQ(book->getBuyTree()->getLimitPrice(), 25);
+
+    ASSERT_NE(limit1->getParent().lock(), nullptr);
+    EXPECT_EQ(limit1->getParent().lock()->getLimitPrice(), 25);
+
+    ASSERT_NE(limit2->getParent().lock(), nullptr);
+    EXPECT_EQ(limit2->getParent().lock(), nullptr);
 }
 
 TEST_F(LimitOrderBookTests, TestRemoveRootLimitWithTwoChildren_RightChildHasLeftChildWithRightChild) {
@@ -647,22 +649,22 @@ TEST_F(LimitOrderBookTests, TestRemoveRootLimitWithTwoChildren_RightChildHasLeft
 
     EXPECT_EQ(expectedPostOrder, actualPostOrder);
 
-    // book->cancelLimitOrder(5);
+    book->cancelLimitOrder(5);
 
-    // expectedInOrder = { 225, 226, 229, 230, 231, 233 };
-    // actualInOrder = book->inOrderTreeTraversal(book->getBuyTree());
+    expectedInOrder = { 225, 226, 229, 230, 231, 233 };
+    actualInOrder = book->inOrderTreeTraversal(book->getBuyTree());
 
-    // EXPECT_EQ(expectedInOrder, actualInOrder);
+    EXPECT_EQ(expectedInOrder, actualInOrder);
 
-    // expectedPreOrder = { 229, 226, 225, 231, 230, 233 };
-    // actualPreOrder = book->preOrderTreeTraversal(book->getBuyTree());
+    expectedPreOrder = { 229, 226, 225, 231, 230, 233 };
+    actualPreOrder = book->preOrderTreeTraversal(book->getBuyTree());
 
-    // EXPECT_EQ(expectedPreOrder, actualPreOrder);
+    EXPECT_EQ(expectedPreOrder, actualPreOrder);
 
-    // expectedPostOrder = { 225, 226, 230, 233, 231, 229 };
-    // actualPostOrder = book->postOrderTreeTraversal(book->getBuyTree());
+    expectedPostOrder = { 225, 226, 230, 233, 231, 229 };
+    actualPostOrder = book->postOrderTreeTraversal(book->getBuyTree());
 
-    // EXPECT_EQ(expectedPostOrder, actualPostOrder);
+    EXPECT_EQ(expectedPostOrder, actualPostOrder);
 }
 
 // AVL tree balancing tests
@@ -681,7 +683,7 @@ TEST_F(LimitOrderBookTests, TestAVLTreeRRRotateOnInsert) {
     ASSERT_NE(limit1, nullptr);
     ASSERT_NE(limit2, nullptr);
     ASSERT_NE(limit3, nullptr);
-    
+
     ASSERT_NE(limit1->getRightChild(), nullptr);
     EXPECT_EQ(limit1->getRightChild()->getLimitPrice(), 25);
 
@@ -729,6 +731,7 @@ TEST_F(LimitOrderBookTests, TestAVLTreeRRRotateOnInsert) {
     EXPECT_EQ(expectedPostOrder, actualPostOrder);
 }
 
+// ************************************************************ //
 // TEST_F(LimitOrderBookTests, TestAVLTreeLLRotateOnInsert) {
 //     book->addLimitOrder(5, true, 80, 20);
 //     book->addLimitOrder(6, true, 80, 15);

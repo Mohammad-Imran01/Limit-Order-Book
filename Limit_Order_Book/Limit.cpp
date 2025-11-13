@@ -3,7 +3,9 @@
 #include <iostream>
 
 Limit::Limit(int _limitPrice, bool _buyOrSell, int _size, int _totalVolume)
-    : limitPrice(_limitPrice),
+    :
+    m_height(1),
+    limitPrice(_limitPrice),
     size(_size),
     totalVolume(_totalVolume),
     buyOrSell(_buyOrSell),
@@ -14,41 +16,12 @@ Limit::Limit(int _limitPrice, bool _buyOrSell, int _size, int _totalVolume)
     tailOrder(nullptr) {
 }
 
-Limit::~Limit() {
-    if (auto sharedParent = parent.lock()) {
-        bool isLeftChild = (limitPrice < sharedParent->getLimitPrice());
-
-        if (!leftChild || !rightChild) {
-            std::shared_ptr<Limit> child = leftChild ? leftChild : rightChild;
-
-            if (isLeftChild)
-                sharedParent->setLeftChild(child);
-            else
-                sharedParent->setRightChild(child);
-            return;
-        }
-
-        std::shared_ptr<Limit> temp = rightChild;
-        while (temp->getLeftChild())
-            temp = temp->getLeftChild();
-
-        if (auto tempParent = temp->getParent().lock()) {
-            tempParent->setLeftChild(temp->getRightChild());
-        }
-
-        temp->setRightChild(rightChild);
-        temp->setLeftChild(leftChild);
-
-        if (isLeftChild)
-            sharedParent->setLeftChild(temp);
-        else
-            sharedParent->setRightChild(temp);
-    } else {
-        if (rightChild) rightChild->setParent({});
-        if (leftChild) leftChild->setParent({});
-    }
-}
 // ---- Getters ----
+void Limit::calculateAndSetHeight() {
+    int l_h = leftChild ? leftChild->m_height : 0;
+    int r_h = rightChild ? rightChild->m_height : 0;
+    m_height = 1 + std::max(l_h, r_h);
+}
 
 std::shared_ptr<Order> Limit::getHeadOrder() const { return headOrder; }
 std::shared_ptr<Order> Limit::getTailOrder() const { return tailOrder; }
@@ -63,7 +36,7 @@ std::shared_ptr<Limit> Limit::getRightChild() const { return rightChild; }
 // ---- Setters ----
 
 void Limit::setParent(const std::weak_ptr<Limit>& newParent) {
-    parent = newParent;   
+    parent = newParent;
 }
 void Limit::setLeftChild(const std::shared_ptr<Limit>& newLeftChild) {
     leftChild = newLeftChild;
@@ -91,21 +64,24 @@ void Limit::partiallyFillTotalVolume(int orderedShares) {
 // ---- Order Handling ----
 
 void Limit::append(const std::shared_ptr<Order>& order) {
+    order->setParentLimit(shared_from_this());
+
     if (!headOrder) {
-        headOrder = tailOrder = order;
-    } else {
-        tailOrder->nextOrder = order;
-        order->prevOrder = tailOrder;
-        order->nextOrder = nullptr;
+        headOrder = order;
         tailOrder = order;
+
+        order->setPrevOrder(std::weak_ptr<Order>{});
+        order->setNextOrder(std::weak_ptr<Order>{});
+    } else {
+        order->setPrevOrder(tailOrder);
+        tailOrder->setNextOrder(order);
+        tailOrder = order;
+        tailOrder->setNextOrder();
     }
 
     size++;
     totalVolume += order->getShares();
-
-    order->parentLimit = shared_from_this();
 }
-
 // ---- Print Helpers ----
 
 void Limit::printForward() const {
