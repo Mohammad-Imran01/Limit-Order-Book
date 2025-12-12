@@ -13,26 +13,20 @@ int main() {
     auto book = std::make_shared<Book>();
 
     OrderPipeline orderPipeline(book);
-
     GenerateOrders generateOrders(book);
 
-    generateOrders.createInitialOrders(90000, 300);
-    // generateOrders.clearOrders(Im::CONST_APP_DIR / "initialOrders.txt");
+    generateOrders.createInitialOrders(500, 300);
+    generateOrders.createOrders(500);
 
-    // orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "initialOrders.txt").string());
+    std::cout << "Created initial and main orders. successfully!";
 
-    generateOrders.createOrders(50000);
-
-
-    // Start measuring time
     auto start = std::chrono::high_resolution_clock::now();
 
-    // orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "Orders.txt").string());
+    orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "initialOrders.txt").string());
+    orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "Orders.txt").string());
 
-    // Stop measuring time
     auto stop = std::chrono::high_resolution_clock::now();
 
-    // Calculate the duration
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
 
     std::cout << "Time taken to process orders: " << duration.count() << " milliseconds" << std::endl;
@@ -40,9 +34,6 @@ int main() {
 
     generateOrders.clearOrders(Im::CONST_APP_DIR / "initialOrders.txt");
     generateOrders.clearOrders(Im::CONST_APP_DIR / "Orders.txt");
-
-    orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "initialOrders.txt").string());
-    orderPipeline.processOrdersFromFile((Im::CONST_APP_DIR / "Orders.txt").string());
 
     return 0;
 }

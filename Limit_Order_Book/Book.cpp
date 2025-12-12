@@ -449,7 +449,7 @@ void Book::addLimit(int limitPrice, bool buyOrSell) {
         tree = newLimit;
         bookEdge = newLimit;
     } else {
-        auto root = insert(tree, newLimit);
+        tree = insert(tree, newLimit);
         updateBookEdgeInsert(newLimit);
     }
 }
@@ -466,53 +466,80 @@ void Book::addStop(int stopPrice, bool buyOrSell) {
         tree = newStop;
         bookEdge = newStop;
     } else {
-        std::shared_ptr<Limit> root = insertStop(tree, newStop);
+        tree = insertStop(tree, newStop);
         updateStopBookEdgeInsert(newStop);
     }
 }
 
 // Insert a limit into its binary search tree
-std::shared_ptr<Limit> Book::insert(std::shared_ptr<Limit> root, std::shared_ptr<Limit> limit, std::shared_ptr<Limit> parent) {
-    if (root == nullptr) {
+std::shared_ptr<Limit> Book::insert(
+    std::shared_ptr<Limit> root,
+    std::shared_ptr<Limit> limit,
+    std::shared_ptr<Limit> parent)
+{
+    // Empty spot -> return new node
+    if (!root) {
         limit->setParent(parent);
         return limit;
     }
+
+    // Standard BST insert
     if (limit->getLimitPrice() < root->getLimitPrice()) {
-        root->setLeftChild(insert(root->getLeftChild(), limit, root));
-        root = balance(root);
-    } else if (limit->getLimitPrice() > root->getLimitPrice()) {
-        root->setRightChild(insert(root->getRightChild(), limit, root));
-        root = balance(root);
+        auto left = insert(root->getLeftChild(), limit, root);
+        root->setLeftChild(left);
+    } 
+    else if (limit->getLimitPrice() > root->getLimitPrice()) {
+        auto right = insert(root->getRightChild(), limit, root);
+        root->setRightChild(right);
+    } 
+    else {
+        // same price → do nothing
+        return root;
     }
+
+    // Update height before rotation
     root->calculateAndSetHeight();
-    root = balance(root);
-    return root;
+
+    // Rebalance and return new root of this subtree
+    auto newRoot = balance(root);
+
+    return newRoot;
 }
 
+
 // Insert a limit into its stop binary search tree
-std::shared_ptr<Limit> Book::insertStop(std::shared_ptr<Limit> root, std::shared_ptr<Limit> limit, std::shared_ptr<Limit> parent) {
+std::shared_ptr<Limit> Book::insertStop(
+    std::shared_ptr<Limit> root,
+    std::shared_ptr<Limit> limit,
+    std::shared_ptr<Limit> parent) {
     if (root == nullptr) {
         limit->setParent(parent);
         return limit;
     }
     if (limit->getLimitPrice() < root->getLimitPrice()) {
         root->setLeftChild(insertStop(root->getLeftChild(), limit, root));
-        root = balanceStop(root);
     } else if (limit->getLimitPrice() > root->getLimitPrice()) {
         root->setRightChild(insertStop(root->getRightChild(), limit, root));
-        root = balanceStop(root);
+    } else {
+        return root;
     }
+    root->calculateAndSetHeight();
+    root = balanceStop(root);
     return root;
 }
 
 // Update the edge of the book if std::make_shared<Limit> is on edge of the book
 void Book::updateBookEdgeInsert(std::shared_ptr<Limit> newLimit) {
+    if (!newLimit) return;
+
     if (newLimit->getBuyOrSell()) {
-        if (newLimit->getLimitPrice() > highestBuy->getLimitPrice()) {
+        // buy side
+        if (!highestBuy || newLimit->getLimitPrice() > highestBuy->getLimitPrice()) {
             highestBuy = newLimit;
         }
     } else {
-        if (newLimit->getLimitPrice() < lowestSell->getLimitPrice()) {
+        // sell side
+        if (!lowestSell || newLimit->getLimitPrice() < lowestSell->getLimitPrice()) {
             lowestSell = newLimit;
         }
     }
@@ -520,17 +547,18 @@ void Book::updateBookEdgeInsert(std::shared_ptr<Limit> newLimit) {
 
 // Update the edge of the stop book if new stop is on edge of the book
 void Book::updateStopBookEdgeInsert(std::shared_ptr<Limit> newStop) {
+    if (!newStop) return;
+
     if (newStop->getBuyOrSell()) {
-        if (newStop->getLimitPrice() < lowestStopBuy->getLimitPrice()) {
+        if (!lowestStopBuy || newStop->getLimitPrice() < lowestStopBuy->getLimitPrice()) {
             lowestStopBuy = newStop;
         }
     } else {
-        if (newStop->getLimitPrice() > highestStopSell->getLimitPrice()) {
+        if (!highestStopSell || newStop->getLimitPrice() > highestStopSell->getLimitPrice()) {
             highestStopSell = newStop;
         }
     }
 }
-
 // Update the edge of the book if current edge of the book is emptied
 void Book::updateBookEdgeRemove(std::shared_ptr<Limit> limit) {
     if (!limit)
@@ -627,109 +655,236 @@ void Book::changeStopBookRoots(std::shared_ptr<Limit> stopLevel) {
 }
 
 // Delete a limit after it has been emptied
+// void Book::deleteLimit(std::shared_ptr<Limit> limit) {
+//     if (!limit) return;
+
+//     // --- 1. PREP ---
+//     // Save relevant info before the limit node is unlinked
+//     std::shared_ptr<Limit> parent_to_balance = limit->getParent().lock();
+//     int limitPrice = limit->getLimitPrice();
+
+//     updateBookEdgeRemove(limit);
+//     deleteFromLimitMaps(limit->getLimitPrice(), limit->getBuyOrSell());
+
+//     // --- 2. BST DELETION: Find the Replacement ---
+
+//     std::shared_ptr<Limit> replacement = nullptr;
+
+//     if (!limit->getLeftChild() || !limit->getRightChild()) {
+//         // Case 1: 0 or 1 child
+//         replacement = limit->getLeftChild() ? limit->getLeftChild() : limit->getRightChild();
+//     } else {
+//         // Case 2: Two children (Find In-Order Successor - smallest node in the right subtree)
+//         std::shared_ptr<Limit> successor = limit->getRightChild();
+//         while (successor->getLeftChild()) {
+//             successor = successor->getLeftChild();
+//         }
+
+//         // a) Unlink successor from its original position
+//         if (auto successorParent = successor->getParent().lock()) {
+//             successorParent->setLeftChild(successor->getRightChild()); // Successor's parent takes its right child
+//             parent_to_balance = successorParent; // Start balancing from successor's old parent
+//         }
+
+//         // b) Successor takes the deleted node's children
+//         successor->setLeftChild(limit->getLeftChild());
+//         successor->setRightChild(limit->getRightChild());
+
+//         // c) Update successor's new children's parent pointers
+//         if (successor->getLeftChild()) successor->getLeftChild()->setParent(successor);
+//         if (successor->getRightChild() && successor != limit->getRightChild()) successor->getRightChild()->setParent(successor);
+
+//         replacement = successor;
+//     }
+
+//     // --- 3. LINK PARENT TO REPLACEMENT ---
+//     if (auto parent = limit->getParent().lock()) {
+//         replacement->setParent(parent); // Replacement gets new parent
+//         if (parent->getLeftChild() == limit) {
+//             parent->setLeftChild(replacement);
+//         } else {
+//             parent->setRightChild(replacement);
+//         }
+//     } else {
+//         // Root case: Update the main tree pointer
+//         changeBookRoots(limit, replacement); // <-- You need to update this helper
+//     }
+
+//     // 4. Release the deleted node (will call destructor)
+//     limit.reset();
+
+//     // --- 5. AVL Balancing ---
+//     while (parent_to_balance) {
+//         parent_to_balance->calculateAndSetHeight(); // 🌟 Update height before balancing
+//         parent_to_balance = balance(parent_to_balance);
+
+//         // Move up the tree for rebalancing (using the result of balance())
+//         auto currParent = parent_to_balance->getParent().lock();
+//         if (currParent) {
+//             // Re-link the parent (which might have changed due to rotation) to its grandparent
+//             if (currParent->getLimitPrice() > parent_to_balance->getLimitPrice()) {
+//                 currParent->setLeftChild(parent_to_balance);
+//             } else {
+//                 currParent->setRightChild(parent_to_balance);
+//             }
+//         }
+//         parent_to_balance = currParent;
+//     }
+// }
 void Book::deleteLimit(std::shared_ptr<Limit> limit) {
     if (!limit) return;
 
-    // --- 1. PREP ---
-    // Save relevant info before the limit node is unlinked
-    std::shared_ptr<Limit> parent_to_balance = limit->getParent().lock();
+    bool isBuy = limit->getBuyOrSell();
+
+    // Which tree to update (buy or sell)
+    std::shared_ptr<Limit>& treeRoot = isBuy ? buyTree : sellTree;
+
+    // Save parent before unlinking
+    std::shared_ptr<Limit> balanceStart = limit->getParent().lock();
     int limitPrice = limit->getLimitPrice();
 
+    // Remove from side maps
     updateBookEdgeRemove(limit);
-    deleteFromLimitMaps(limit->getLimitPrice(), limit->getBuyOrSell());
+    deleteFromLimitMaps(limitPrice, isBuy);
 
-    // --- 2. BST DELETION: Find the Replacement ---
-
+    //----------------------------------------------------------------------
+    // 1. Determine replacement (standard BST delete)
+    //----------------------------------------------------------------------
     std::shared_ptr<Limit> replacement = nullptr;
 
     if (!limit->getLeftChild() || !limit->getRightChild()) {
-        // Case 1: 0 or 1 child
-        replacement = limit->getLeftChild() ? limit->getLeftChild() : limit->getRightChild();
-    } else {
-        // Case 2: Two children (Find In-Order Successor - smallest node in the right subtree)
+        //------------------------------------------------------------------
+        // CASE A: Node has 0 or 1 child
+        //------------------------------------------------------------------
+        replacement = limit->getLeftChild() ?
+                      limit->getLeftChild() :
+                      limit->getRightChild();
+
+        if (replacement)
+            replacement->setParent(limit->getParent().lock());
+    }
+    else {
+        //------------------------------------------------------------------
+        // CASE B: Node has 2 children → find in-order successor
+        //------------------------------------------------------------------
         std::shared_ptr<Limit> successor = limit->getRightChild();
-        while (successor->getLeftChild()) {
+
+        // smallest from right subtree
+        while (successor->getLeftChild())
             successor = successor->getLeftChild();
+
+        auto succParent = successor->getParent().lock();
+
+        //------------------------------------------------------------------
+        // Remove successor from old location
+        //------------------------------------------------------------------
+        if (succParent != limit) {
+            // successor is deeper
+            succParent->setLeftChild(successor->getRightChild());
+            if (successor->getRightChild())
+                successor->getRightChild()->setParent(succParent);
+
+            balanceStart = succParent;
+        } else {
+            // successor was the immediate right child
+            balanceStart = successor;
         }
 
-        // a) Unlink successor from its original position
-        if (auto successorParent = successor->getParent().lock()) {
-            successorParent->setLeftChild(successor->getRightChild()); // Successor's parent takes its right child
-            parent_to_balance = successorParent; // Start balancing from successor's old parent
-        }
-
-        // b) Successor takes the deleted node's children
+        //------------------------------------------------------------------
+        // Successor takes limit's children
+        //------------------------------------------------------------------
         successor->setLeftChild(limit->getLeftChild());
-        successor->setRightChild(limit->getRightChild());
+        successor->getLeftChild()->setParent(successor);
 
-        // c) Update successor's new children's parent pointers
-        if (successor->getLeftChild()) successor->getLeftChild()->setParent(successor);
-        if (successor->getRightChild() && successor != limit->getRightChild()) successor->getRightChild()->setParent(successor);
+        if (successor != limit->getRightChild()) {
+            successor->setRightChild(limit->getRightChild());
+            successor->getRightChild()->setParent(successor);
+        }
 
         replacement = successor;
     }
 
-    // --- 3. LINK PARENT TO REPLACEMENT ---
-    if (auto parent = limit->getParent().lock()) {
-        replacement->setParent(parent); // Replacement gets new parent
-        if (parent->getLeftChild() == limit) {
+    //----------------------------------------------------------------------
+    // 2. Attach replacement to parent OR update tree root
+    //----------------------------------------------------------------------
+    auto parent = limit->getParent().lock();
+
+    if (parent) {
+        if (parent->getLeftChild() == limit)
             parent->setLeftChild(replacement);
-        } else {
+        else
             parent->setRightChild(replacement);
-        }
-    } else {
-        // Root case: Update the main tree pointer
-        changeBookRoots(limit, replacement); // <-- You need to update this helper
+
+        if (replacement)
+            replacement->setParent(parent);
+    }
+    else {
+        // limit was root
+        treeRoot = replacement;
+        if (replacement)
+            replacement->setParent();   // clear parent to null
     }
 
-    // 4. Release the deleted node (will call destructor)
+    //----------------------------------------------------------------------
+    // 3. Destroy limit pointer
+    //----------------------------------------------------------------------
     limit.reset();
 
-    // --- 5. AVL Balancing ---
-    while (parent_to_balance) {
-        parent_to_balance->calculateAndSetHeight(); // 🌟 Update height before balancing
-        parent_to_balance = balance(parent_to_balance);
+    //----------------------------------------------------------------------
+    // 4. AVL BALANCE BOTTOM-UP
+    //----------------------------------------------------------------------
+    while (balanceStart) {
+        balanceStart->calculateAndSetHeight();
 
-        // Move up the tree for rebalancing (using the result of balance())
-        auto currParent = parent_to_balance->getParent().lock();
-        if (currParent) {
-            // Re-link the parent (which might have changed due to rotation) to its grandparent
-            if (currParent->getLimitPrice() > parent_to_balance->getLimitPrice()) {
-                currParent->setLeftChild(parent_to_balance);
-            } else {
-                currParent->setRightChild(parent_to_balance);
-            }
-        }
-        parent_to_balance = currParent;
+        auto newSubRoot = balance(balanceStart);
+        auto next = newSubRoot->getParent().lock();   // climb up
+
+        balanceStart = next;
     }
 }
+
+
+
 
 // Delete a stop level after it has been emptied
-void Book::deleteStopLevel(std::shared_ptr<Limit> stopLevel) {
-    updateStopBookEdgeRemove(stopLevel);
-    deleteFromStopMap(stopLevel->getLimitPrice());
-    changeStopBookRoots(stopLevel);
+void Book::deleteStopLevel(std::shared_ptr<Limit> node) {
+    if (!node) return;
 
-    std::shared_ptr<Limit> parent = stopLevel->getParent().lock();
-    int stopPrice = stopLevel->getLimitPrice();
+    updateStopBookEdgeRemove(node);
+    deleteFromStopMap(node->getLimitPrice());
 
-    stopLevel.reset();
-    if (stopLevel.use_count())
-        std::cout << "You broke the code pointer wasnt deleted: " << stopLevel.use_count();
+    auto parent = node->getParent().lock();
 
+    // 1. Disconnect node from its parent
+    if (parent) {
+        if (parent->getLeftChild() == node)
+            parent->setLeftChild(nullptr);
+        else if (parent->getRightChild() == node)
+            parent->setRightChild(nullptr);
+    }
+
+    int deletedPrice = node->getLimitPrice();
+
+    // 2. Drop local pointer (this will delete the object if refcount == 1)
+    node.reset();
+
+    // 3. Rebalance upwards
     while (parent) {
-        parent = balanceStop(parent);
-        auto currParent = parent->getParent().lock();
-        if (currParent) {
-            if (currParent->getLimitPrice() > stopPrice) {
-                currParent->setLeftChild(parent);
-            } else {
-                currParent->setRightChild(parent);
-            }
+        parent->calculateAndSetHeight(); // or calculateAndSetHeight()
+        auto newRoot = balanceStop(parent);
+
+        auto grand = newRoot->getParent().lock();
+        if (grand) {
+            if (grand->getLimitPrice() > deletedPrice)
+                grand->setLeftChild(newRoot);
+            else
+                grand->setRightChild(newRoot);
         }
-        parent = currParent;
+
+        parent = grand;
     }
 }
+
 
 // Delete an order from the order map
 void Book::deleteFromOrderMap(int orderId) {

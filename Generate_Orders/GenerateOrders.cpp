@@ -80,11 +80,11 @@ void GenerateOrders::addLimit() {
     if (buyOrSell) {
         do {
             limitPrice = limitPriceDist(gen);
-        } while (limitPrice >= book->getLowestSell()->getLimitPrice());
+        } while (book->getLowestSell() && (limitPrice >= book->getLowestSell()->getLimitPrice()));
     } else {
         do {
             limitPrice = limitPriceDist(gen);
-        } while (limitPrice <= book->getHighestBuy()->getLimitPrice());
+        } while (book->getHighestBuy() && (limitPrice <= book->getHighestBuy()->getLimitPrice()));
     }
 
     file << "AddLimit " << orderId << " " << buyOrSell << " " << shares << " " << limitPrice << std::endl;
@@ -106,7 +106,7 @@ void GenerateOrders::cancelLimit() {
 
 void GenerateOrders::modifyLimit() {
     std::uniform_int_distribution<> sharesDist(1, 1000);
-    std::normal_distribution<> limitPriceDist(book->getHighestBuy()->getLimitPrice(), 50);
+    std::normal_distribution<> limitPriceDist((book && book->getHighestBuy() ? book->getHighestBuy()->getLimitPrice() : 0), 50);
 
     int shares = sharesDist(gen);
 
@@ -154,6 +154,10 @@ void GenerateOrders::addLimitMarket() {
 
 void GenerateOrders::addStop() {
     std::uniform_int_distribution<> sharesDist(1, 1000);
+    if(!book->getHighestBuy()) {
+        std::cerr << "Error found again curr length:" << book->getLimitHeight(book->getBuyTree());
+        return;
+    }
     std::normal_distribution<> stopPriceDist(book->getHighestBuy()->getLimitPrice(), 50);
     std::uniform_int_distribution<> buyOrSellDist(0, 1);
 
@@ -164,11 +168,11 @@ void GenerateOrders::addStop() {
     if (buyOrSell) {
         do {
             stopPrice = stopPriceDist(gen);
-        } while (stopPrice <= book->getLowestSell()->getLimitPrice());
+        } while (book->getLowestSell() && (stopPrice <= book->getLowestSell()->getLimitPrice()));
     } else {
         do {
             stopPrice = stopPriceDist(gen);
-        } while (stopPrice >= book->getHighestBuy()->getLimitPrice());
+        } while (book->getHighestBuy() && (stopPrice >= book->getHighestBuy()->getLimitPrice()));
     }
 
     file << "AddStop " << orderId << " " << buyOrSell << " " << shares << " " << stopPrice << std::endl;
@@ -218,6 +222,11 @@ void GenerateOrders::modifyStop() {
 
 void GenerateOrders::addStopLimit() {
     std::uniform_int_distribution<> sharesDist(1, 1000);
+    if(!book || !book->getHighestBuy()) {
+        std::cerr << "addstoplimit: Caught error. size: " 
+        << book->getLimitHeight(book->getBuyTree());
+        return;
+    }
     std::normal_distribution<> stopPriceDist(book->getHighestBuy()->getLimitPrice(), 50);
     std::uniform_int_distribution<> limitPriceDist(1, 5);
     std::uniform_int_distribution<> buyOrSellDist(0, 1);
